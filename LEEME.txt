@@ -1,0 +1,14 @@
+MI MAPA DE OBJETIVOS - versión instalable
+
+1. Sube esta carpeta completa (con todos sus archivos) a un servicio de alojamiento
+   gratuito de páginas estáticas (por ejemplo GitHub Pages, Netlify o Cloudflare Pages).
+2. Abre la dirección https que te dé el servicio desde el navegador del celular.
+3. En Chrome: menú de tres puntos > "Instalar app" (o "Agregar a la pantalla de inicio").
+
+Notas:
+- Los datos se guardan en cada dispositivo. Para pasar tus tareas de la compu al celular,
+  usa "Backup" en la compu y "Cargar" en el celular.
+- Cuando cambies de versión, vuelve a subir los archivos. La app instalada se actualiza
+  sola la próxima vez que abras con internet.
+- Abrir index.html directamente desde el celular (sin subirlo) funciona mal en muchos
+  navegadores y no se puede instalar.
