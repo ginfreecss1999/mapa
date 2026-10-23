@@ -316,6 +316,22 @@
             #lv-cabecera span:empty { display: none; }
             #lv-cabecera span[data-ord] { padding: 4px 10px; border: 1px solid var(--borde-btn); border-radius: 12px; }
         }
+    
+        /* --- SINCRONIZACIÓN --- */
+        #modal-sync { display: none; position: fixed; inset: 0; z-index: 1200; background: rgba(0, 0, 0, 0.6); align-items: center; justify-content: center; padding: 16px; }
+        #modal-sync.abierto { display: flex; }
+        #modal-sync .caja { background: var(--cuadro-bg); color: var(--texto); border: 2px solid var(--borde-btn); border-radius: 12px; padding: 18px; width: 100%; max-width: 440px; max-height: 90vh; overflow-y: auto; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5); }
+        #modal-sync h3 { margin: 0 0 8px; font-size: 16px; }
+        #modal-sync h4 { margin: 16px 0 6px; font-size: 13px; }
+        #modal-sync p { margin: 4px 0; font-size: 12px; color: var(--texto-secundario); line-height: 1.45; }
+        #modal-sync a { color: #60a5fa; }
+        #modal-sync input { width: 100%; box-sizing: border-box; padding: 8px 10px; margin: 4px 0; border-radius: 8px; border: 1px solid var(--borde-btn); background: var(--bg-btn); color: var(--texto); font-size: 13px; font-family: inherit; outline: none; }
+        #modal-sync input:focus { border-color: #3b82f6; }
+        #modal-sync button.accion { margin-top: 6px; margin-right: 6px; padding: 8px 14px; border-radius: 8px; border: 1px solid transparent; background: #3b82f6; color: white; font-weight: bold; font-size: 13px; font-family: inherit; cursor: pointer; }
+        #modal-sync button.accion:disabled { opacity: 0.5; cursor: default; }
+        #modal-sync button.sec { background: transparent; border-color: var(--borde-btn); color: var(--texto); font-weight: normal; }
+        #modal-sync .cerrar { float: right; background: none; border: none; color: var(--texto-secundario); font-size: 18px; cursor: pointer; }
+        #modal-sync .error { margin-top: 8px; font-size: 12px; min-height: 14px; }
     </style>
 </head>
 <body>
@@ -332,6 +348,7 @@
     <div id="barra-pestanas"></div>
     
     <div id="menu-respaldo">
+        <button class="btn-respaldo" id="btn-sync" title="Sincronizar entre dispositivos">☁ Sincronizar</button>
         <button class="btn-respaldo" id="btn-vista" title="Cambiar entre mapa y lista">📋 Vista lista</button>
         <button class="btn-respaldo" id="btn-deshacer" title="Deshacer (Ctrl+Z)">↶</button>
         <button class="btn-respaldo" id="btn-rehacer" title="Rehacer (Ctrl+Y)">↷</button>
@@ -378,7 +395,7 @@
     
     <div id="papelera">🗑️</div>
     <div id="indicador-guardado">Guardado ✓</div>
-    <div id="version-app">v1.23 (Árbol invertido)</div>
+    <div id="version-app">v1.24 (Árbol invertido)</div>
 
     <script>
         const lienzo = document.getElementById('lienzo');
@@ -431,7 +448,7 @@
         if (!listaPestanas.includes(pestanaActiva)) pestanaActiva = listaPestanas[0];
 
         function renderizarPestanas() {
-            barraPestanas.innerHTML = ''; 
+            syncProgramar(); barraPestanas.innerHTML = ''; 
             listaPestanas.forEach(nombre => {
                 const btn = document.createElement('div');
                 btn.className = 'pestana' + (nombre === pestanaActiva ? ' activa' : '');
@@ -478,6 +495,7 @@
 
         function renombrarPestana(nombreViejo, nuevoNombre) {
             guardarMapa();
+            syncMarcarBorrada(nombreViejo, nuevoNombre);
             const datosGuardados = localStorage.getItem('mapaDatos_' + nombreViejo);
             if (datosGuardados) { localStorage.setItem('mapaDatos_' + nuevoNombre, datosGuardados); localStorage.removeItem('mapaDatos_' + nombreViejo); }
             const index = listaPestanas.indexOf(nombreViejo);
@@ -488,7 +506,7 @@
 
         function eliminarPestana(nombre) {
             if (confirm(`¿Estás seguro de eliminar el proyecto "${nombre}"? Todo su contenido se perderá para siempre.`)) {
-                localStorage.removeItem('mapaDatos_' + nombre);
+                syncMarcarBorrada(nombre); localStorage.removeItem('mapaDatos_' + nombre);
                 listaPestanas = listaPestanas.filter(p => p !== nombre);
                 localStorage.setItem('misTabs', JSON.stringify(listaPestanas));
                 if (pestanaActiva === nombre) cambiarPestana(listaPestanas[0], false); else renderizarPestanas();
@@ -1034,6 +1052,322 @@
             navigator.serviceWorker.register('sw.js').catch(() => {});
         }
 
+        // --- SINCRONIZACIÓN ENTRE DISPOSITIVOS (archivo privado en GitHub Gist, con cifrado opcional) ---
+        const SYNC_ARCHIVO = 'mapa-sync.json';
+        let guardadoPendiente = false, syncOcupado = false, syncPendiente = false, timerSync = null;
+        let syncEstado = { tipo: 'nada', msg: '' };
+
+        // <<SYNC-CORE-INICIO>>
+        function syncCfg() { try { return JSON.parse(localStorage.getItem('syncConfig')) || null; } catch (e) { return null; } }
+        function syncMetaLeer() {
+            let m = {}; try { m = JSON.parse(localStorage.getItem('syncMeta')) || {}; } catch (e) {}
+            m.mod = m.mod || {}; m.hash = m.hash || {}; m.borradas = m.borradas || {};
+            return m;
+        }
+        function syncMetaGuardar(m) { localStorage.setItem('syncMeta', JSON.stringify(m)); }
+        // El contenido real de un proyecto (sin la posición de la cámara, que es propia de cada dispositivo)
+        function huellaDe(d) { return JSON.stringify({ n: d.nodos, e: d.enlaces, b: d.bandeja }); }
+        function syncMarcarCambio(tab, d) {
+            if (!syncCfg()) return;
+            const m = syncMetaLeer(); const h = huellaDe(d);
+            if (m.hash[tab] !== h) { m.hash[tab] = h; m.mod[tab] = Date.now(); syncMetaGuardar(m); syncProgramar(); }
+        }
+        function syncMarcarBorrada(nombre, nuevoNombre) {
+            if (!syncCfg()) return;
+            const m = syncMetaLeer(); const t = Date.now();
+            m.borradas[nombre] = t; m.ordenMod = t;
+            if (nuevoNombre) { m.mod[nuevoNombre] = t + 1; if (m.hash[nombre]) m.hash[nuevoNombre] = m.hash[nombre]; m.ordenMod = t + 1; }
+            delete m.mod[nombre]; delete m.hash[nombre];
+            syncMetaGuardar(m);
+        }
+        // Tras cargar un respaldo: los proyectos anteriores quedan borrados y los cargados cuentan como nuevos
+        function syncTrasImportar() {
+            if (!syncCfg()) return;
+            const m = syncMetaLeer(); const t = Date.now();
+            listaPestanas.forEach(n => { m.borradas[n] = t; delete m.mod[n]; delete m.hash[n]; });
+            for (let i = 0; i < localStorage.length; i++) {
+                const k = localStorage.key(i);
+                if (k.startsWith('mapaDatos_')) { m.mod[k.slice(10)] = t + 1; }
+            }
+            m.ordenMod = t + 1; delete m.listaHash;
+            syncMetaGuardar(m);
+        }
+        function snapshotLocal(m, tomb, remoto, omitidas) {
+            const snap = { v: 1, ordenMod: m.ordenMod || 0, orden: listaPestanas.slice(), borradas: tomb || {}, tabs: {} };
+            listaPestanas.forEach(n => {
+                if (omitidas && omitidas.has(n) && remoto.tabs[n]) { snap.tabs[n] = remoto.tabs[n]; return; }
+                const d = localStorage.getItem('mapaDatos_' + n);
+                if (d !== null) snap.tabs[n] = { mod: m.mod[n] || 0, datos: d };
+            });
+            return snap;
+        }
+        // Une lo local con lo de la nube: en cada proyecto gana la versión más reciente; los borrados se respetan
+        function fusionarRemoto(remoto, m) {
+            remoto.tabs = remoto.tabs || {}; remoto.borradas = remoto.borradas || {}; remoto.orden = Array.isArray(remoto.orden) ? remoto.orden : [];
+            const ae = document.activeElement;
+            const ocupado = !!(elementoArrastrado || (ae && /^(TEXTAREA|INPUT)$/.test(ae.tagName)));
+            const res = { cambioRemoto: false, recargar: false, listaCambio: false, tomb: {}, omitidas: new Set(), reintentar: false };
+            const listaAntes = JSON.stringify(listaPestanas);
+            if (m.listaHash !== listaAntes) { m.listaHash = listaAntes; m.ordenMod = Date.now(); }
+            const nombres = new Set([...listaPestanas, ...Object.keys(remoto.tabs), ...Object.keys(remoto.borradas), ...Object.keys(m.borradas)]);
+            nombres.forEach(n => {
+                const datosLocales = localStorage.getItem('mapaDatos_' + n);
+                const enRemoto = remoto.tabs[n];
+                let L = m.mod[n];
+                if (L === undefined) { L = enRemoto ? 0 : (datosLocales !== null ? Date.now() : 0); if (L > 0) m.mod[n] = L; }
+                const R = enRemoto ? (enRemoto.mod || 0) : 0;
+                const T = Math.max(m.borradas[n] || 0, remoto.borradas[n] || 0);
+                if (T > Math.max(L, R)) {
+                    res.tomb[n] = T;
+                    if (datosLocales !== null) { localStorage.removeItem('mapaDatos_' + n); if (n === pestanaActiva) res.recargar = true; }
+                    delete m.mod[n]; delete m.hash[n];
+                    if (enRemoto || !(remoto.borradas[n] >= T)) res.cambioRemoto = true;
+                } else if (R > L) {
+                    if (n === pestanaActiva && ocupado) { res.reintentar = true; res.omitidas.add(n); return; }
+                    let nuevo = enRemoto.datos;
+                    if (datosLocales !== null) { try { const dl = JSON.parse(datosLocales), dr = JSON.parse(nuevo); if (dl.camara) dr.camara = dl.camara; nuevo = JSON.stringify(dr); } catch (e) {} }
+                    localStorage.setItem('mapaDatos_' + n, nuevo);
+                    m.mod[n] = R; try { m.hash[n] = huellaDe(JSON.parse(nuevo)); } catch (e) {}
+                    if (n === pestanaActiva) res.recargar = true;
+                } else if (L > R) { res.cambioRemoto = true; }
+            });
+            const borrada = (n) => res.tomb[n] !== undefined;
+            const remotaGana = (remoto.ordenMod || 0) > (m.ordenMod || 0);
+            const primera = remotaGana ? remoto.orden : listaPestanas, segunda = remotaGana ? listaPestanas : remoto.orden;
+            const fusion = [];
+            [...primera, ...segunda, ...Object.keys(remoto.tabs)].forEach(n => { if (typeof n === 'string' && !fusion.includes(n) && !borrada(n)) fusion.push(n); });
+            if (fusion.length === 0) fusion.push('General');
+            if (JSON.stringify(fusion) !== listaAntes) {
+                listaPestanas = fusion; localStorage.setItem('misTabs', JSON.stringify(listaPestanas)); res.listaCambio = true;
+                if (!listaPestanas.includes(pestanaActiva)) { pestanaActiva = listaPestanas[0]; localStorage.setItem('tabActiva', pestanaActiva); res.recargar = true; }
+            }
+            if (JSON.stringify(fusion) !== JSON.stringify(remoto.orden)) res.cambioRemoto = true;
+            m.ordenMod = Math.max(m.ordenMod || 0, remoto.ordenMod || 0);
+            m.listaHash = JSON.stringify(listaPestanas);
+            m.borradas = res.tomb;
+            return res;
+        }
+        // <<SYNC-CORE-FIN>>
+
+        function b64(buf) { const u = new Uint8Array(buf); let t = ''; for (let i = 0; i < u.length; i += 0x8000) t += String.fromCharCode.apply(null, u.subarray(i, i + 0x8000)); return btoa(t); }
+        function deB64(t) { const bin = atob(t); const u = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i); return u; }
+        const saltSesion = b64(crypto.getRandomValues(new Uint8Array(16)));
+        const clavesCache = {};
+        async function claveDe(pass, sal) {
+            if (!(window.crypto && crypto.subtle)) throw new Error('El cifrado necesita abrir la app desde una dirección https.');
+            const id = pass + '|' + sal;
+            if (clavesCache[id]) return clavesCache[id];
+            const base = await crypto.subtle.importKey('raw', new TextEncoder().encode(pass), 'PBKDF2', false, ['deriveKey']);
+            return (clavesCache[id] = await crypto.subtle.deriveKey({ name: 'PBKDF2', salt: deB64(sal), iterations: 150000, hash: 'SHA-256' }, base, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']));
+        }
+        async function empaquetar(snap, pass) {
+            const texto = JSON.stringify(snap);
+            if (!pass) return texto;
+            const iv = crypto.getRandomValues(new Uint8Array(12));
+            const cif = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, await claveDe(pass, saltSesion), new TextEncoder().encode(texto));
+            return JSON.stringify({ enc: 1, salt: saltSesion, iv: b64(iv), data: b64(cif) });
+        }
+        async function desempaquetar(contenido, pass) {
+            const o = JSON.parse(contenido);
+            if (!o.enc) return o;
+            if (!pass) throw new Error('Los datos en la nube están cifrados: falta la contraseña.');
+            try {
+                const buf = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: deB64(o.iv) }, await claveDe(pass, o.salt), deB64(o.data));
+                return JSON.parse(new TextDecoder().decode(buf));
+            } catch (e) { throw new Error('La contraseña de cifrado no es correcta.'); }
+        }
+
+        async function ghFetch(ruta, metodo = 'GET', cuerpo = null) {
+            const cfg = syncCfg();
+            const opc = { method: metodo, headers: { 'Accept': 'application/vnd.github+json', 'Authorization': 'Bearer ' + cfg.token } };
+            if (cuerpo) { opc.headers['Content-Type'] = 'application/json'; opc.body = JSON.stringify(cuerpo); }
+            const r = await fetch('https://api.github.com' + ruta, opc);
+            if (r.status === 401) throw new Error('El token no es válido o venció.');
+            if (r.status === 404 && ruta.startsWith('/gists/')) throw new Error('No se encontró el archivo de sincronización en GitHub (¿se borró?).');
+            if (r.status === 403 || r.status === 404) throw new Error('GitHub rechazó la solicitud. Revisa que el token tenga permiso de Gists (lectura y escritura).');
+            if (!r.ok) throw new Error('GitHub respondió con un error (' + r.status + ').');
+            return r.json();
+        }
+        async function leerRemoto(cfg) {
+            const g = await ghFetch('/gists/' + cfg.gist);
+            const f = g.files && g.files[SYNC_ARCHIVO];
+            if (!f) return null;
+            let c = f.content;
+            if (f.truncated && f.raw_url) c = await (await fetch(f.raw_url)).text();
+            return (c && c.trim()) ? c : null;
+        }
+        async function escribirRemoto(cfg, contenido) { await ghFetch('/gists/' + cfg.gist, 'PATCH', { files: { [SYNC_ARCHIVO]: { content: contenido } } }); }
+
+        function recargarPestanaActivaUI() {
+            document.querySelectorAll('.cuadro').forEach(c => c.remove());
+            conexiones = []; capaLineas.innerHTML = ''; listaTareas.innerHTML = '';
+            cargarMapa(); renderizarPestanas();
+        }
+        function syncProgramar(ms = 3000) { if (!syncCfg()) return; clearTimeout(timerSync); timerSync = setTimeout(sincronizar, ms); }
+
+        async function sincronizar() {
+            const cfg = syncCfg(); if (!cfg || !cfg.gist) return;
+            if (syncOcupado) { syncPendiente = true; return; }
+            if (!navigator.onLine) { syncEstadoSet('offline'); return; }
+            syncOcupado = true; syncEstadoSet('sync');
+            let reintentar = false;
+            try {
+                const contenido = await leerRemoto(cfg);
+                const remoto = Object.assign({ tabs: {}, borradas: {}, orden: [], ordenMod: 0 }, contenido ? await desempaquetar(contenido, cfg.pass) : {});
+                if (guardadoPendiente) { clearTimeout(timeoutGuardado); guardarMapa(); }
+                const m = syncMetaLeer();
+                const res = fusionarRemoto(remoto, m);
+                syncMetaGuardar(m);
+                if (res.recargar) recargarPestanaActivaUI(); else if (res.listaCambio) renderizarPestanas();
+                if (res.cambioRemoto || !contenido) await escribirRemoto(cfg, await empaquetar(snapshotLocal(m, res.tomb, remoto, res.omitidas), cfg.pass));
+                const m2 = syncMetaLeer(); m2.ultima = Date.now(); syncMetaGuardar(m2);
+                reintentar = res.reintentar;
+                syncEstadoSet('ok');
+            } catch (e) { syncEstadoSet('error', (e && e.message) || String(e)); }
+            finally {
+                syncOcupado = false;
+                if (syncPendiente) { syncPendiente = false; syncProgramar(500); } else if (reintentar) syncProgramar(5000);
+            }
+        }
+
+        function aplicarRemotoCompleto(remoto) {
+            clearTimeout(timeoutGuardado); guardadoPendiente = false;
+            remoto.tabs = remoto.tabs || {};
+            for (let i = localStorage.length - 1; i >= 0; i--) { const k = localStorage.key(i); if (k.startsWith('mapaDatos_')) localStorage.removeItem(k); }
+            const m = { mod: {}, hash: {}, borradas: remoto.borradas || {}, ordenMod: remoto.ordenMod || 0 };
+            Object.keys(remoto.tabs).forEach(n => {
+                localStorage.setItem('mapaDatos_' + n, remoto.tabs[n].datos); m.mod[n] = remoto.tabs[n].mod || 0;
+                try { m.hash[n] = huellaDe(JSON.parse(remoto.tabs[n].datos)); } catch (e) {}
+            });
+            let lista = (Array.isArray(remoto.orden) ? remoto.orden : []).filter(n => typeof n === 'string');
+            Object.keys(remoto.tabs).forEach(n => { if (!lista.includes(n)) lista.push(n); });
+            if (lista.length === 0) lista = ['General'];
+            listaPestanas = lista; localStorage.setItem('misTabs', JSON.stringify(lista));
+            if (!lista.includes(pestanaActiva)) pestanaActiva = lista[0];
+            localStorage.setItem('tabActiva', pestanaActiva);
+            m.listaHash = JSON.stringify(lista); syncMetaGuardar(m);
+            recargarPestanaActivaUI();
+        }
+
+        // --- Interfaz: botón y ventana de sincronización ---
+        const modalSync = document.createElement('div'); modalSync.id = 'modal-sync'; document.body.appendChild(modalSync);
+        function textoEstadoSync() {
+            const ult = syncMetaLeer().ultima;
+            const hora = ult ? new Date(ult).toLocaleString([], { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : 'todavía no';
+            if (syncEstado.tipo === 'sync') return 'Sincronizando…';
+            if (syncEstado.tipo === 'error') return '⚠ ' + syncEstado.msg;
+            if (syncEstado.tipo === 'offline') return 'Sin conexión. Se reintentará al volver. Última sincronización: ' + hora;
+            return 'Última sincronización: ' + hora;
+        }
+        function syncEstadoSet(tipo, msg) { syncEstado = { tipo, msg: msg || '' }; actualizarBotonSync(); }
+        function actualizarBotonSync() {
+            const b = document.getElementById('btn-sync'); if (!b) return;
+            if (!syncCfg()) { b.innerText = '☁ Sincronizar'; b.title = 'Sincronizar entre dispositivos'; }
+            else {
+                const ult = syncMetaLeer().ultima;
+                b.innerText = syncEstado.tipo === 'sync' ? '☁ …' : syncEstado.tipo === 'error' ? '☁ ⚠' : syncEstado.tipo === 'offline' ? '☁ sin conexión'
+                    : '☁ ✓' + (ult ? ' ' + new Date(ult).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '');
+                b.title = textoEstadoSync();
+            }
+            const st = document.getElementById('sync-estado'); if (st) st.innerText = textoEstadoSync();
+        }
+        function cerrarModalSync() { modalSync.classList.remove('abierto'); modalSync.innerHTML = ''; }
+        modalSync.addEventListener('mousedown', (e) => { if (e.target === modalSync) cerrarModalSync(); });
+        document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && modalSync.classList.contains('abierto')) cerrarModalSync(); });
+        document.getElementById('btn-sync').addEventListener('click', () => { renderModalSync(); modalSync.classList.add('abierto'); });
+
+        function renderModalSync() {
+            const cfg = syncCfg();
+            const v = (id) => (document.getElementById(id) || {}).value || '';
+            const err = (t, info) => { const e = document.getElementById('sy-error'); if (e) { e.innerText = t || ''; e.style.color = info ? '#94a3b8' : '#f87171'; } };
+            if (cfg) {
+                modalSync.innerHTML = `<div class="caja"><button class="cerrar" id="sy-cerrar">✕</button>
+                    <h3>☁ Sincronización activa</h3><p id="sync-estado"></p>
+                    <button class="accion" id="sy-ahora">Sincronizar ahora</button>
+                    <h4>Vincular otro dispositivo</h4>
+                    <p>Copia este código y pégalo en el otro dispositivo (en "Ya lo activé en otro dispositivo"). Contiene tu token: no lo compartas.${cfg.pass ? ' También te pedirá tu contraseña de cifrado.' : ''}</p>
+                    <input type="text" readonly id="sy-codigo-ver"><button class="accion sec" id="sy-copiar">Copiar código</button>
+                    <h4>Desvincular</h4>
+                    <p>Este dispositivo deja de sincronizar. No se borra nada, ni aquí ni en la nube.</p>
+                    <button class="accion sec" id="sy-desvincular">Desvincular este dispositivo</button>
+                    <div class="error" id="sy-error"></div></div>`;
+                document.getElementById('sy-codigo-ver').value = 'MAPA1.' + btoa(JSON.stringify({ t: cfg.token, g: cfg.gist, e: cfg.pass ? 1 : 0 }));
+                document.getElementById('sy-ahora').addEventListener('click', () => { syncProgramar(0); });
+                document.getElementById('sy-copiar').addEventListener('click', async () => {
+                    const caja = document.getElementById('sy-codigo-ver');
+                    try { await navigator.clipboard.writeText(caja.value); err('Código copiado.', true); } catch (e) { caja.select(); document.execCommand('copy'); err('Código copiado.', true); }
+                });
+                document.getElementById('sy-desvincular').addEventListener('click', () => {
+                    if (!confirm('¿Desvincular este dispositivo? Dejará de sincronizar.')) return;
+                    clearTimeout(timerSync); localStorage.removeItem('syncConfig'); localStorage.removeItem('syncMeta');
+                    syncEstado = { tipo: 'nada', msg: '' }; actualizarBotonSync(); renderModalSync();
+                });
+                actualizarBotonSync();
+            } else {
+                modalSync.innerHTML = `<div class="caja"><button class="cerrar" id="sy-cerrar">✕</button>
+                    <h3>☁ Sincronizar entre dispositivos</h3>
+                    <p>Guarda una copia de tus proyectos en un archivo privado de tu cuenta de GitHub (un "gist") y la mantiene igual en todos tus dispositivos. Necesitas una cuenta gratuita de GitHub.</p>
+                    <h4>En el primer dispositivo</h4>
+                    <p>Crea un token en <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">GitHub</a> (en "Account permissions" elige <b>Gists: Read and write</b>) y pégalo aquí.</p>
+                    <input type="password" id="sy-token" placeholder="Token de GitHub" autocomplete="off">
+                    <input type="password" id="sy-pass" placeholder="Contraseña para cifrar tus datos (opcional)" autocomplete="new-password">
+                    <button class="accion" id="sy-activar">Activar</button>
+                    <h4>Ya lo activé en otro dispositivo</h4>
+                    <input type="text" id="sy-codigo" placeholder="Código de vinculación" autocomplete="off">
+                    <input type="password" id="sy-pass2" placeholder="Contraseña de cifrado (si usaste una)" autocomplete="off">
+                    <button class="accion" id="sy-vincular">Vincular</button>
+                    <div class="error" id="sy-error"></div></div>`;
+                document.getElementById('sy-activar').addEventListener('click', async (ev) => {
+                    const boton = ev.target; const token = v('sy-token').trim(), pass = v('sy-pass');
+                    if (!token) { err('Pega tu token de GitHub.'); return; }
+                    if (pass && !(window.crypto && crypto.subtle)) { err('El cifrado necesita abrir la app desde una dirección https. Déjalo vacío o usa la versión instalada.'); return; }
+                    boton.disabled = true; err('Creando el archivo en GitHub…', true);
+                    try {
+                        if (guardadoPendiente) { clearTimeout(timeoutGuardado); guardarMapa(); }
+                        localStorage.setItem('syncConfig', JSON.stringify({ token, gist: '', pass }));
+                        const m = syncMetaLeer(); const t = Date.now();
+                        listaPestanas.forEach(n => {
+                            const d = localStorage.getItem('mapaDatos_' + n);
+                            if (d !== null) { m.mod[n] = t; try { m.hash[n] = huellaDe(JSON.parse(d)); } catch (e) {} }
+                        });
+                        m.ordenMod = t; m.listaHash = JSON.stringify(listaPestanas); syncMetaGuardar(m);
+                        const contenido = await empaquetar(snapshotLocal(m, {}, { tabs: {} }, null), pass);
+                        const g = await ghFetch('/gists', 'POST', { description: 'Mi Mapa de Objetivos (sincronización)', public: false, files: { [SYNC_ARCHIVO]: { content: contenido } } });
+                        localStorage.setItem('syncConfig', JSON.stringify({ token, gist: g.id, pass }));
+                        const m2 = syncMetaLeer(); m2.ultima = Date.now(); syncMetaGuardar(m2);
+                        syncEstadoSet('ok'); renderModalSync();
+                        err('Listo. Copia el código para vincular tus otros dispositivos.', true);
+                    } catch (e) { localStorage.removeItem('syncConfig'); boton.disabled = false; err(e.message || String(e)); }
+                });
+                document.getElementById('sy-vincular').addEventListener('click', async (ev) => {
+                    const boton = ev.target; const pass = v('sy-pass2');
+                    let o = null;
+                    try { o = JSON.parse(atob(v('sy-codigo').trim().replace(/^MAPA1\./, ''))); } catch (e) {}
+                    if (!o || !o.t || !o.g) { err('El código no es válido.'); return; }
+                    if (o.e && !pass) { err('Este código usa contraseña de cifrado: escríbela en el campo de abajo.'); return; }
+                    boton.disabled = true; err('Conectando…', true);
+                    try {
+                        localStorage.setItem('syncConfig', JSON.stringify({ token: o.t, gist: o.g, pass }));
+                        const contenido = await leerRemoto(syncCfg());
+                        const remoto = contenido ? await desempaquetar(contenido, pass) : null;
+                        const hayRemotos = !!(remoto && remoto.tabs && Object.keys(remoto.tabs).length);
+                        const hayLocales = listaPestanas.some(n => localStorage.getItem('mapaDatos_' + n) !== null);
+                        if (hayRemotos && (!hayLocales || confirm('Se encontraron datos en la nube.\n\nAceptar = traerlos y reemplazar los de este dispositivo (recomendado).\nCancelar = combinar ambos (en cada proyecto gana la versión más reciente).'))) {
+                            aplicarRemotoCompleto(remoto);
+                        }
+                        cerrarModalSync(); syncEstadoSet('nada'); syncProgramar(0);
+                    } catch (e) { localStorage.removeItem('syncConfig'); boton.disabled = false; err(e.message || String(e)); }
+                });
+            }
+            document.getElementById('sy-cerrar').addEventListener('click', cerrarModalSync);
+        }
+
+        setInterval(() => { if (!document.hidden) syncProgramar(0); }, 60000);
+        document.addEventListener('visibilitychange', () => { if (!document.hidden) syncProgramar(500); });
+        window.addEventListener('online', () => syncProgramar(500));
+        actualizarBotonSync();
+        syncProgramar(1500);
+
         function tituloDe(cuadro) { return cuadro.querySelector('.titulo').value.trim() || '(sin título)'; }
         function tieneTitulo(cuadro) { return cuadro.querySelector('.titulo').value.trim() !== ''; }
 
@@ -1183,7 +1517,7 @@
             if (!abierto) actualizarEstados();
         });
 
-        function pedirGuardado() { clearTimeout(timeoutGuardado); timeoutGuardado = setTimeout(guardarMapa, 500); }
+        function pedirGuardado() { guardadoPendiente = true; clearTimeout(timeoutGuardado); timeoutGuardado = setTimeout(guardarMapa, 500); }
 
         let historial = [], posHistorial = -1, restaurando = false;
         function registrarFoto(foto) {
@@ -1211,12 +1545,14 @@
         }
 
         function guardarMapa() {
+            guardadoPendiente = false;
             programarEstados();
             const d = recogerDatos();
             registrarFoto(JSON.stringify(d));
             const datosCompletos = { camara: { panX, panY, escala }, nodos: d.nodos, enlaces: d.enlaces, ultimoId: idContador, bandeja: d.bandeja, invertido: true };
             try { localStorage.setItem('mapaDatos_' + pestanaActiva, JSON.stringify(datosCompletos)); }
             catch (e) { mostrarMensajeEspecial('⚠ No se pudo guardar'); return; }
+            syncMarcarCambio(pestanaActiva, d);
             mostrarGuardado();
         }
 
@@ -1449,7 +1785,7 @@
                         if (key === 'misTabs' || key === 'tabActiva' || key.startsWith('mapaDatos_')) { localStorage.removeItem(key); }
                     }
                     clavesValidas.forEach(key => localStorage.setItem(key, datos[key]));
-                    alert('Respaldo cargado con éxito. La página se actualizará.'); location.reload(); 
+                    syncTrasImportar(); alert('Respaldo cargado con éxito. La página se actualizará.'); location.reload(); 
                 } catch (error) { inputArchivo.value = ''; alert('Error al leer el archivo. Asegúrate de que sea un respaldo válido.'); }
             };
             lector.readAsText(archivo);
