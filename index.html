@@ -445,6 +445,22 @@
                 background: #1e3a8a; color: white; font-weight: bold; font-size: 12px;
             }
         }
+
+        /* --- ZONA DAÑADA TAMBIÉN EN LA VISTA DE MAPA (CELULAR) --- */
+        @media (max-width: 760px) {
+            body:not(.movil-simple)::before {
+                content: ''; position: fixed; top: 0; left: 0; right: 0; height: var(--zona-rota);
+                background: var(--fondo); z-index: 960; pointer-events: auto;
+            }
+            body:not(.movil-simple) #btn-drawer { top: calc(var(--zona-rota) + 12px); }
+            body:not(.movil-simple) #barra-pestanas { top: calc(var(--zona-rota) + 12px); }
+            body:not(.movil-simple) #btn-filtro { top: calc(var(--zona-rota) + 62px); }
+            body:not(.movil-simple) #caja-buscar { top: calc(var(--zona-rota) + 62px); }
+            body:not(.movil-simple) #indicador-seleccion { top: calc(var(--zona-rota) + 108px); }
+            body:not(.movil-simple) #btn-volver-movil { top: calc(var(--zona-rota) + 112px); }
+            body:not(.movil-simple) #panel-lateral { padding-top: calc(var(--zona-rota) + 20px); }
+            body:not(.movil-simple) #vista-lista { padding-top: calc(var(--zona-rota) + 112px); }
+        }
     </style>
 </head>
 <body>
@@ -530,7 +546,7 @@
     
     <div id="papelera">🗑️</div>
     <div id="indicador-guardado">Guardado ✓</div>
-    <div id="version-app">v1.36 (Modo celular)</div>
+    <div id="version-app">v1.37 (Modo celular)</div>
 
     <script>
         const lienzo = document.getElementById('lienzo');
