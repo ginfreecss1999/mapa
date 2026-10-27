@@ -39,7 +39,8 @@
         .animar-camara { transition: transform 0.5s ease-in-out !important; }
         body.animar-camara { transition: background-position 0.5s ease-in-out !important; }
 
-        #lienzo { width: 100vw; height: 100vh; position: relative; cursor: grab; touch-action: none; }
+        #lienzo { width: 100vw; height: 100vh; position: relative; overflow: hidden; cursor: grab; touch-action: none; }
+        html { overflow: hidden; }
         #lienzo:active { cursor: grabbing; }
 
         #contenedor-mapa {
@@ -332,6 +333,116 @@
         #modal-sync button.sec { background: transparent; border-color: var(--borde-btn); color: var(--texto); font-weight: normal; }
         #modal-sync .cerrar { float: right; background: none; border: none; color: var(--texto-secundario); font-size: 18px; cursor: pointer; }
         #modal-sync .error { margin-top: 8px; font-size: 12px; min-height: 14px; }
+    
+        /* --- SILUETA AL ARRASTRAR --- */
+        .silueta-cuadro { position: absolute; box-sizing: border-box; border: 2px dashed #3b82f6; border-radius: 12px; background: rgba(59, 130, 246, 0.10); pointer-events: none; }
+        .silueta-cuadro.conecta { border-color: #10b981; background: rgba(16, 185, 129, 0.12); }
+        .silueta-cuadro.candidata { border-style: dotted; border-color: rgba(59, 130, 246, 0.55); background: rgba(59, 130, 246, 0.04); }
+
+        /* --- SELECCIÓN MÚLTIPLE --- */
+        .cuadro.seleccionado { outline: 3px solid #38bdf8; outline-offset: 3px; }
+        #lazo-seleccion { display: none; position: fixed; z-index: 950; border: 1px dashed #38bdf8; background: rgba(56, 189, 248, 0.12); pointer-events: none; }
+        #indicador-seleccion { display: none; position: fixed; top: 72px; left: 280px; z-index: 1000; background: #0c4a6e; color: #e0f2fe; border: 1px solid #38bdf8; border-radius: 16px; padding: 4px 12px; font-size: 12px; font-weight: bold; pointer-events: none; }
+        @media (max-width: 760px) { #indicador-seleccion { top: 108px; left: 10px; } }
+        /* --- MODO BOLSILLO (CELULAR) --- */
+        #app-movil, #btn-volver-movil { display: none; }
+        @media (max-width: 760px) {
+            body.movil-simple #lienzo,
+            body.movil-simple #papelera,
+            body.movil-simple #panel-lateral,
+            body.movil-simple #btn-drawer,
+            body.movil-simple #btn-filtro,
+            body.movil-simple #caja-buscar,
+            body.movil-simple #vista-lista,
+            body.movil-simple #panel-ahora,
+            body.movil-simple #menu-respaldo { display: none !important; }
+
+            body.movil-simple #barra-pestanas {
+                top: 10px; left: 10px; right: 98px; max-width: none;
+                flex-wrap: nowrap; overflow-x: auto; z-index: 1005;
+            }
+            body.movil-simple #app-movil {
+                display: flex; flex-direction: column;
+                position: fixed; inset: 0; background: var(--fondo); z-index: 950;
+                padding: 58px 12px 70px; box-sizing: border-box;
+            }
+            .mv-top-acciones {
+                position: fixed; top: 10px; right: 10px; display: flex; gap: 6px; z-index: 1006;
+            }
+            .mv-btn-icono {
+                height: 36px; padding: 0 10px; border-radius: 8px;
+                border: 2px solid var(--borde-btn); background: var(--bg-btn);
+                color: var(--texto); font-size: 13px; font-weight: bold; cursor: pointer;
+            }
+            .mv-tabs-modo {
+                display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px;
+            }
+            .mv-tabs-modo button {
+                padding: 10px; border-radius: 10px; border: 2px solid var(--borde-btn);
+                background: var(--cuadro-bg); color: var(--texto-secundario);
+                font-size: 14px; font-weight: bold; cursor: pointer;
+            }
+            .mv-tabs-modo button.activo {
+                border-color: #3b82f6; background: rgba(59, 130, 246, 0.18); color: var(--texto);
+            }
+            #mv-barra-orden {
+                display: flex; gap: 6px; overflow-x: auto; padding-bottom: 8px; margin-bottom: 4px;
+            }
+            #mv-barra-orden button {
+                flex: 0 0 auto; padding: 5px 11px; border-radius: 14px;
+                border: 1px solid var(--borde-btn); background: transparent;
+                color: var(--texto-secundario); font-size: 12px; cursor: pointer;
+            }
+            #mv-barra-orden button.activo {
+                background: #3b82f6; border-color: #3b82f6; color: white;
+            }
+            #mv-contenido {
+                flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 8px;
+                padding-bottom: 12px;
+            }
+            .mv-tarjeta {
+                display: flex; align-items: flex-start; gap: 12px;
+                background: var(--cuadro-bg); border: 1px solid var(--borde-btn);
+                border-left: 4px solid #10b981; border-radius: 10px; padding: 12px;
+            }
+            .mv-tarjeta input[type="checkbox"] {
+                width: 22px; height: 22px; margin-top: 2px; accent-color: #10b981; flex-shrink: 0;
+            }
+            .mv-cuerpo { flex: 1; min-width: 0; }
+            .mv-titulo { font-size: 15px; font-weight: bold; line-height: 1.35; word-break: break-word; }
+            .mv-meta { margin-top: 4px; font-size: 12px; color: var(--texto-secundario); line-height: 1.4; }
+            .mv-btn-nota {
+                background: rgba(148, 163, 184, 0.15); border: none; border-radius: 8px;
+                padding: 6px 10px; font-size: 15px; cursor: pointer; color: var(--texto-secundario);
+            }
+            .mv-btn-nota.con-nota { background: rgba(252, 211, 77, 0.2); color: #fcd34d; }
+            .mv-bandeja-item {
+                display: flex; align-items: center; gap: 10px;
+                background: var(--cuadro-bg); border: 1px solid var(--borde-btn);
+                border-radius: 10px; padding: 11px 12px; font-size: 14px;
+            }
+            .mv-bandeja-item span { flex: 1; word-break: break-word; }
+            .mv-captura {
+                position: fixed; left: 0; right: 0; bottom: 0; z-index: 1005;
+                display: flex; gap: 8px; padding: 10px 12px;
+                background: var(--panel-bg); border-top: 2px solid var(--borde-btn);
+            }
+            .mv-captura input {
+                flex: 1; padding: 10px 12px; border-radius: 10px;
+                border: 1px solid var(--borde-btn); background: var(--cuadro-bg);
+                color: var(--texto); font-size: 15px; outline: none;
+            }
+            .mv-captura input:focus { border-color: #3b82f6; }
+            .mv-captura button {
+                padding: 0 16px; border-radius: 10px; border: none;
+                background: #3b82f6; color: white; font-size: 18px; font-weight: bold; cursor: pointer;
+            }
+            body:not(.movil-simple) #btn-volver-movil {
+                display: block; position: fixed; top: 62px; right: 10px; z-index: 1005;
+                padding: 7px 12px; border-radius: 10px; border: 2px solid #3b82f6;
+                background: #1e3a8a; color: white; font-weight: bold; font-size: 12px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -387,6 +498,28 @@
         <div id="ahora-lista"></div>
     </div>
 
+    <div id="app-movil">
+        <div class="mv-top-acciones">
+            <button class="mv-btn-icono" id="mv-btn-sync" title="Sincronizar">☁</button>
+            <button class="mv-btn-icono" id="mv-btn-mapa" title="Ver mapa completo">🗺️</button>
+        </div>
+        <div class="mv-tabs-modo">
+            <button id="mv-tab-ahora" class="activo">🎯 Ahora</button>
+            <button id="mv-tab-bandeja">📥 Bandeja</button>
+        </div>
+        <div id="mv-barra-orden">
+            <button data-orden="fecha">📅 Fecha</button>
+            <button data-orden="prioridad">🚩 Prioridad</button>
+            <button data-orden="esfuerzo">⚡ Rápidas</button>
+            <button data-orden="ayuda">🔗 Destraban</button>
+        </div>
+        <div id="mv-contenido"></div>
+        <div class="mv-captura">
+            <input type="text" id="mv-input-tarea" placeholder="➕ Anotar para la bandeja..." autocomplete="off">
+            <button id="mv-btn-enviar">+</button>
+        </div>
+    </div>
+    <button id="btn-volver-movil">📱 Modo simple</button>
     <div id="lienzo">
         <div id="contenedor-mapa">
             <svg id="capa-lineas"></svg>
@@ -395,7 +528,7 @@
     
     <div id="papelera">🗑️</div>
     <div id="indicador-guardado">Guardado ✓</div>
-    <div id="version-app">v1.24 (Árbol invertido)</div>
+    <div id="version-app">v1.35 (Modo celular)</div>
 
     <script>
         const lienzo = document.getElementById('lienzo');
@@ -425,6 +558,7 @@
         let conexiones = []; 
         let idContador = 0; 
         const coloresNivel = ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899'];
+        const seleccion = new Set();   // cuadros seleccionados (selección múltiple)
         function esDescendiente(nodo, ancestro) {
             const visitados = new Set(); const pila = [ancestro];
             while (pila.length) {
@@ -517,7 +651,7 @@
             if (nombre === pestanaActiva) return; 
             if (guardarAntes) guardarMapa(); else clearTimeout(timeoutGuardado); pestanaActiva = nombre; localStorage.setItem('tabActiva', nombre); 
             document.querySelectorAll('.cuadro').forEach(c => c.remove());
-            conexiones = []; capaLineas.innerHTML = ''; document.getElementById('lista-tareas').innerHTML = '';
+            conexiones = []; capaLineas.innerHTML = ''; document.getElementById('lista-tareas').innerHTML = ''; limpiarSeleccion();
             panX = 0; panY = 0; escala = 1; actualizarCamara(); cargarMapa(); renderizarPestanas();
         }
 
@@ -836,7 +970,7 @@
                 const sub = document.createElement('div'); sub.className = 'lv-sub';
                 const partes = [estado === 'completada' ? '✔ Completada' : (estado === 'bloqueada' ? '🔒 Faltan ' + faltan + (faltan === 1 ? ' paso previo' : ' pasos previos') : '✅ Lista para hacer')];
                 if (padres.length) partes.push('para: ' + padres.map(tituloDe).join(', '));
-                sub.innerText = partes.join(' · ');
+                sub.innerText = partes.join(' · '); sub.title = textoFechasCuadro(c);
                 celdaT.appendChild(inp); celdaT.appendChild(sub);
 
                 const btnPr = lvChip('meta-prioridad p' + pr, ETIQ_PRIORIDAD[pr], pr === 0, 'Prioridad: ' + NOM_PRIORIDAD[pr] + ' (clic para cambiar)', () => c.querySelector('.meta-prioridad').click());
@@ -874,10 +1008,7 @@
         lvNueva.addEventListener('keydown', (e) => {
             if (e.key !== 'Enter' || e.isComposing) return;
             const texto = lvNueva.value.trim(); if (!texto) return;
-            const cuadros = Array.from(document.querySelectorAll('.cuadro'));
-            const yBase = cuadros.length ? Math.max(...cuadros.map(c => c.offsetTop + c.offsetHeight)) + 40 : 100;
-            const xBase = cuadros.length ? Math.min(...cuadros.map(c => c.offsetLeft)) : 300;
-            crearCuadro(xBase, yBase, 0, { texto: texto, completado: false });
+            crearTareaSuelta(texto);
             lvNueva.value = ''; guardarMapa();
         });
         document.querySelectorAll('#lv-filtros button').forEach(b => b.addEventListener('click', () => { lvFiltro = b.dataset.f; renderizarLista(); }));
@@ -929,11 +1060,13 @@
             nodos.forEach((n, i) => { if (n.padre === null) colocar(i, 0); });
             const maxProf = Math.max(...prof);
             const existentes = Array.from(document.querySelectorAll('.cuadro'));
-            const x0 = existentes.length ? Math.min(...existentes.map(c => c.offsetLeft)) : 300;
-            const y0 = existentes.length ? Math.max(...existentes.map(c => c.offsetTop + c.offsetHeight)) + 60 : 100;
-            const alinear = (v) => Math.round(v / TAMANO_GRILLA) * TAMANO_GRILLA;
-            const cajas = nodos.map((n, i) => crearCuadro(alinear(x0 + col[i] * 250), alinear(y0 + (maxProf - prof[i]) * 210), prof[i],
-                { texto: n.texto, completado: n.completado, etiquetas: n.etiquetas }));
+            const { px, py } = pasosSlots();
+            const x0 = existentes.length ? Math.round(Math.min(...existentes.map(c => c.offsetLeft)) / px) * px : Math.round(300 / px) * px;
+            const y0 = existentes.length ? Math.ceil((Math.max(...existentes.map(c => c.offsetTop + c.offsetHeight)) + 20) / py) * py : Math.ceil(100 / py) * py;
+            const cajas = nodos.map((n, i) => {
+                const cx = x0 + Math.round(col[i]) * px, cy = y0 + (maxProf - prof[i]) * py;
+                return colocarEnSlot(crearCuadro(cx, cy, prof[i], { texto: n.texto, completado: n.completado, etiquetas: n.etiquetas }), cx, cy);
+            });
             nodos.forEach((n, i) => { if (n.padre !== null) conexiones.push({ padre: cajas[n.padre], hijo: cajas[i] }); });
             dibujarLineas(); guardarMapa();
             mostrarMensajeEspecial('📥 ' + nodos.length + (nodos.length === 1 ? ' tarea importada' : ' tareas importadas') + ' (Ctrl+Z deshace)');
@@ -974,9 +1107,10 @@
 
         function crearTareaSuelta(texto) {
             const cuadros = Array.from(document.querySelectorAll('.cuadro'));
-            const yBase = cuadros.length ? Math.max(...cuadros.map(c => c.offsetTop + c.offsetHeight)) + 40 : 100;
-            const xBase = cuadros.length ? Math.min(...cuadros.map(c => c.offsetLeft)) : 300;
-            return crearCuadro(xBase, yBase, 0, { texto: texto, completado: false });
+            const { px, py } = pasosSlots();
+            const yBase = cuadros.length ? Math.ceil((Math.max(...cuadros.map(c => c.offsetTop + c.offsetHeight)) + 20) / py) * py : Math.ceil(100 / py) * py;
+            const xBase = cuadros.length ? Math.round(Math.min(...cuadros.map(c => c.offsetLeft)) / px) * px : Math.round(300 / px) * px;
+            return colocarEnSlot(crearCuadro(xBase, yBase, 0, { texto: texto, completado: false }), xBase, yBase);
         }
 
         function cerrarDrawer() { document.body.classList.remove('drawer-abierto'); }
@@ -1062,11 +1196,18 @@
         function syncMetaLeer() {
             let m = {}; try { m = JSON.parse(localStorage.getItem('syncMeta')) || {}; } catch (e) {}
             m.mod = m.mod || {}; m.hash = m.hash || {}; m.borradas = m.borradas || {};
+            if (m.hv !== 2) {   // la huella cambió de fórmula: se recalcula con lo ya guardado
+                Object.keys(m.hash).forEach(t => { try { m.hash[t] = huellaDe(JSON.parse(localStorage.getItem('mapaDatos_' + t))); } catch (e) { delete m.hash[t]; } });
+                m.hv = 2;
+            }
             return m;
         }
         function syncMetaGuardar(m) { localStorage.setItem('syncMeta', JSON.stringify(m)); }
         // El contenido real de un proyecto (sin la posición de la cámara, que es propia de cada dispositivo)
-        function huellaDe(d) { return JSON.stringify({ n: d.nodos, e: d.enlaces, b: d.bandeja }); }
+        function huellaDe(d) {
+            const nodos = (d.nodos || []).map(n => { const c = Object.assign({}, n); delete c.x; delete c.y; delete c.creado; delete c.tocado; return c; });
+            return JSON.stringify({ n: nodos, e: d.enlaces, b: d.bandeja });
+        }
         function syncMarcarCambio(tab, d) {
             if (!syncCfg()) return;
             const m = syncMetaLeer(); const h = huellaDe(d);
@@ -1125,9 +1266,10 @@
                 } else if (R > L) {
                     if (n === pestanaActiva && ocupado) { res.reintentar = true; res.omitidas.add(n); return; }
                     let nuevo = enRemoto.datos;
-                    if (datosLocales !== null) { try { const dl = JSON.parse(datosLocales), dr = JSON.parse(nuevo); if (dl.camara) dr.camara = dl.camara; nuevo = JSON.stringify(dr); } catch (e) {} }
+                    if (datosLocales !== null) { try { const dl = JSON.parse(datosLocales), dr = JSON.parse(nuevo); if (dl.camara) dr.camara = dl.camara; const pos = {}; (dl.nodos || []).forEach(nl => { pos[nl.id] = nl; }); (dr.nodos || []).forEach(nr => { const nl = pos[nr.id]; if (nl) { nr.x = nl.x; nr.y = nl.y; } }); nuevo = JSON.stringify(dr); } catch (e) {} }
                     localStorage.setItem('mapaDatos_' + n, nuevo);
                     m.mod[n] = R; try { m.hash[n] = huellaDe(JSON.parse(nuevo)); } catch (e) {}
+                    localStorage.removeItem('reticula_' + n);
                     if (n === pestanaActiva) res.recargar = true;
                 } else if (L > R) { res.cambioRemoto = true; }
             });
@@ -1200,7 +1342,7 @@
 
         function recargarPestanaActivaUI() {
             document.querySelectorAll('.cuadro').forEach(c => c.remove());
-            conexiones = []; capaLineas.innerHTML = ''; listaTareas.innerHTML = '';
+            conexiones = []; capaLineas.innerHTML = ''; listaTareas.innerHTML = ''; limpiarSeleccion();
             cargarMapa(); renderizarPestanas();
         }
         function syncProgramar(ms = 3000) { if (!syncCfg()) return; clearTimeout(timerSync); timerSync = setTimeout(sincronizar, ms); }
@@ -1233,7 +1375,7 @@
         function aplicarRemotoCompleto(remoto) {
             clearTimeout(timeoutGuardado); guardadoPendiente = false;
             remoto.tabs = remoto.tabs || {};
-            for (let i = localStorage.length - 1; i >= 0; i--) { const k = localStorage.key(i); if (k.startsWith('mapaDatos_')) localStorage.removeItem(k); }
+            for (let i = localStorage.length - 1; i >= 0; i--) { const k = localStorage.key(i); if (k.startsWith('mapaDatos_') || k.startsWith('reticula_')) localStorage.removeItem(k); }
             const m = { mod: {}, hash: {}, borradas: remoto.borradas || {}, ordenMod: remoto.ordenMod || 0 };
             Object.keys(remoto.tabs).forEach(n => {
                 localStorage.setItem('mapaDatos_' + n, remoto.tabs[n].datos); m.mod[n] = remoto.tabs[n].mod || 0;
@@ -1365,6 +1507,7 @@
         setInterval(() => { if (!document.hidden) syncProgramar(0); }, 60000);
         document.addEventListener('visibilitychange', () => { if (!document.hidden) syncProgramar(500); });
         window.addEventListener('online', () => syncProgramar(500));
+        if (syncCfg()) syncMetaGuardar(syncMetaLeer());
         actualizarBotonSync();
         syncProgramar(1500);
 
@@ -1372,6 +1515,7 @@
         function tieneTitulo(cuadro) { return cuadro.querySelector('.titulo').value.trim() !== ''; }
 
         function actualizarEstados() {
+            purgarSeleccion();
             const hijosDe = new Map();
             conexiones.forEach(c => { if (!hijosDe.has(c.padre)) hijosDe.set(c.padre, []); hijosDe.get(c.padre).push(c.hijo); });
             const reactivadas = reactivarRepetitivas();
@@ -1528,6 +1672,27 @@
         }
         function reiniciarHistorial() { historial = []; posHistorial = -1; }
 
+        // --- REGISTRO DE FECHAS: cuándo se creó y cuándo se modificó por última vez cada tarea ---
+        function mapaHijos() { const m = new Map(); conexiones.forEach(k => { if (!m.has(k.padre)) m.set(k.padre, []); m.get(k.padre).push(k.hijo); }); return m; }
+        // Lo que cuenta como "tocar" una tarea: su texto, si está hecha, fecha, prioridad, esfuerzo, repetición, etiquetas, nota y sus pasos previos
+        function huellaCuadro(c, hijosDe) {
+            const hijos = (hijosDe.get(c) || []).map(h => h.dataset.id).sort();
+            return JSON.stringify([c.querySelector('.titulo').value, c.querySelector('.casilla').checked, c.dataset.fecha || '', c.dataset.prioridad || 0, c.dataset.esfuerzo || 0, c.dataset.repetir || '', (c.etiquetas || []).join('\u0001'), c.nota || '', hijos]);
+        }
+        function sellarHuellas() { const hd = mapaHijos(); document.querySelectorAll('.cuadro').forEach(c => { c._huella = huellaCuadro(c, hd); }); }
+        function actualizarTocados() {
+            const hd = mapaHijos(); const ahora = Date.now();
+            document.querySelectorAll('.cuadro').forEach(c => {
+                const h = huellaCuadro(c, hd);
+                if (c._huella === undefined) { c._huella = h; return; }
+                if (c._huella !== h) { c.dataset.tocado = ahora; c._huella = h; }
+            });
+        }
+        function textoFechasCuadro(c) {
+            const f = (t) => new Date(Number(t)).toLocaleString([], { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+            return 'Creada: ' + f(c.dataset.creado) + ' · Última modificación: ' + f(c.dataset.tocado);
+        }
+
         function recogerDatos() {
             const nodos = [];
             document.querySelectorAll('.cuadro').forEach(c => {
@@ -1535,7 +1700,8 @@
                     id: c.dataset.id, nivel: c.dataset.nivel, x: c.offsetLeft, y: c.offsetTop,
                     texto: c.querySelector('.titulo').value, completado: c.querySelector('.casilla').checked,
                     colapsado: c.dataset.colapsado === '1',
-                    fecha: c.dataset.fecha || '', prioridad: limitar03(c.dataset.prioridad), esfuerzo: limitar03(c.dataset.esfuerzo), etiquetas: (c.etiquetas || []).slice(), repetir: c.dataset.repetir || '', completadoEn: c.dataset.completadoEn || '', nota: c.nota || ''
+                    fecha: c.dataset.fecha || '', prioridad: limitar03(c.dataset.prioridad), esfuerzo: limitar03(c.dataset.esfuerzo), etiquetas: (c.etiquetas || []).slice(), repetir: c.dataset.repetir || '', completadoEn: c.dataset.completadoEn || '', nota: c.nota || '',
+                    creado: Number(c.dataset.creado) || 0, tocado: Number(c.dataset.tocado) || 0
                 });
             });
             const enlaces = conexiones.map(conn => ({ padreId: conn.padre.dataset.id, hijoId: conn.hijo.dataset.id }));
@@ -1546,6 +1712,7 @@
 
         function guardarMapa() {
             guardadoPendiente = false;
+            actualizarTocados();
             programarEstados();
             const d = recogerDatos();
             registrarFoto(JSON.stringify(d));
@@ -1560,11 +1727,12 @@
             restaurando = true;
             const d = JSON.parse(foto);
             document.querySelectorAll('.cuadro').forEach(c => c.remove());
-            conexiones = []; capaLineas.innerHTML = ''; listaTareas.innerHTML = '';
+            conexiones = []; capaLineas.innerHTML = ''; listaTareas.innerHTML = ''; limpiarSeleccion();
             d.bandeja.forEach(t => agregarTareaBandejaDOM(t));
             const mapa = {};
             d.nodos.forEach(n => { mapa[n.id] = crearCuadro(n.x, n.y, parseInt(n.nivel), n); });
             d.enlaces.forEach(e => { if (mapa[e.padreId] && mapa[e.hijoId]) conexiones.push({ padre: mapa[e.padreId], hijo: mapa[e.hijoId] }); });
+            sellarHuellas();
             dibujarLineas(); guardarMapa();
             restaurando = false;
         }
@@ -1579,8 +1747,11 @@
         function crearCuadro(x, y, nivel = 0, datosPrevios = null) {
             const cuadro = document.createElement('div');
             cuadro.className = 'cuadro';
-            if (datosPrevios && datosPrevios.id) { cuadro.dataset.id = datosPrevios.id; } 
+            if (datosPrevios && datosPrevios.id) { cuadro.dataset.id = datosPrevios.id; }
             else { idContador++; cuadro.dataset.id = idContador; }
+            cuadro.dataset.creado = (datosPrevios && Number(datosPrevios.creado)) || Date.now();
+            cuadro.dataset.tocado = (datosPrevios && Number(datosPrevios.tocado)) || cuadro.dataset.creado;
+            if (datosPrevios && datosPrevios.id && !Number(datosPrevios.creado)) cuadro.dataset.sinFechas = '1';   // tarea anterior al registro de fechas
             
             cuadro.dataset.nivel = nivel;
             if (datosPrevios && datosPrevios.colapsado) cuadro.dataset.colapsado = '1';
@@ -1619,14 +1790,9 @@
             botonAgregar.addEventListener('click', (evento) => {
                 evento.stopPropagation(); 
                 cuadro.dataset.colapsado = '0';
-                const cantidadHijosActuales = conexiones.filter(c => c.padre === cuadro).length;
-                const multiplicadorAbanico = Math.ceil(cantidadHijosActuales / 2) * (cantidadHijosActuales % 2 !== 0 ? 1 : -1);
-                const nuevoX = cuadro.offsetLeft + (multiplicadorAbanico * 240);
-
-                const nuevoCuadro = crearCuadro(nuevoX, cuadro.offsetTop, nivel + 1);
-                let nuevoY = cuadro.offsetTop - nuevoCuadro.offsetHeight - 40;
-                if (modoIman) nuevoY = Math.floor(nuevoY / TAMANO_GRILLA) * TAMANO_GRILLA;
-                nuevoCuadro.style.top = nuevoY + 'px';
+                const nuevoCuadro = crearCuadro(cuadro.offsetLeft, cuadro.offsetTop, nivel + 1);
+                const posNueva = posicionSobrePadre(cuadro, nuevoCuadro);
+                nuevoCuadro.style.left = posNueva.x + 'px'; nuevoCuadro.style.top = posNueva.y + 'px';
                 conexiones.push({ padre: cuadro, hijo: nuevoCuadro });
                 dibujarLineas(); guardarMapa(); 
             });
@@ -1700,7 +1866,13 @@
         }
 
         function cargarMapa() {
-            cargarMapaBase(); reiniciarHistorial(); registrarFoto(JSON.stringify(recogerDatos()));
+            const habiaGuardado = localStorage.getItem('mapaDatos_' + pestanaActiva) !== null;
+            cargarMapaBase();
+            sellarHuellas();
+            const sinFechas = habiaGuardado && Array.from(document.querySelectorAll('.cuadro')).some(c => c.dataset.sinFechas === '1');
+            document.querySelectorAll('.cuadro').forEach(c => { delete c.dataset.sinFechas; });
+            if (sinFechas) guardarMapa();   // las tareas anteriores quedan con la fecha de hoy como inicio del registro
+            reiniciarHistorial(); registrarFoto(JSON.stringify(recogerDatos())); programarAlineado();
         }
 
         function cargarMapaBase() {
@@ -1747,8 +1919,8 @@
                 const key = localStorage.key(i);
                 if (key === 'misTabs' || key === 'tabActiva' || key.startsWith('mapaDatos_')) { respaldo[key] = localStorage.getItem(key); }
             }
-            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(respaldo));
-            const enlaceDescarga = document.createElement('a'); enlaceDescarga.setAttribute("href", dataStr); 
+            const urlBlob = URL.createObjectURL(new Blob([JSON.stringify(respaldo)], { type: 'application/json' }));
+            const enlaceDescarga = document.createElement('a'); enlaceDescarga.setAttribute("href", urlBlob); 
             
             if(auto) {
                 const hoy = new Date();
@@ -1759,7 +1931,7 @@
                 enlaceDescarga.setAttribute("download", "mis_mapas_respaldo.json");
             }
 
-            document.body.appendChild(enlaceDescarga); enlaceDescarga.click(); enlaceDescarga.remove();
+            document.body.appendChild(enlaceDescarga); enlaceDescarga.click(); enlaceDescarga.remove(); setTimeout(() => URL.revokeObjectURL(urlBlob), 2000);
         }
 
         btnExportar.addEventListener('click', () => exportarBackup(false));
@@ -1782,7 +1954,7 @@
                     clearTimeout(timeoutGuardado);
                     for (let i = localStorage.length - 1; i >= 0; i--) {
                         const key = localStorage.key(i);
-                        if (key === 'misTabs' || key === 'tabActiva' || key.startsWith('mapaDatos_')) { localStorage.removeItem(key); }
+                        if (key === 'misTabs' || key === 'tabActiva' || key.startsWith('mapaDatos_') || key.startsWith('reticula_')) { localStorage.removeItem(key); }
                     }
                     clavesValidas.forEach(key => localStorage.setItem(key, datos[key]));
                     syncTrasImportar(); alert('Respaldo cargado con éxito. La página se actualizará.'); location.reload(); 
@@ -1822,7 +1994,8 @@
             
             if (arboles.length === 0 && sueltos.length > 0) arboles.push(sueltos.shift());
 
-            let currentX = raices.length > 0 ? Math.max(50, raices[0].offsetLeft - 100) : 50;
+            const { px: PX, py: PY } = pasosSlots();
+            let currentX = Math.round((raices.length > 0 ? Math.max(50, raices[0].offsetLeft - 100) : 50) / PX) * PX;
             todosLosNodos.forEach(c => c.classList.add('animar-movimiento'));
 
             const visitados = new Set();
@@ -1835,9 +2008,9 @@
                 nodo.dataset.nivel = nivel; nodo.style.borderColor = coloresNivel[nivel % coloresNivel.length];
 
                 if (hijos.length === 0) {
-                    let posX = currentX; if (modoIman) posX = Math.round(posX / TAMANO_GRILLA) * TAMANO_GRILLA;
+                    let posX = Math.round(currentX / PX) * PX;
                     nodo.style.left = posX + 'px'; nodo.style.top = posY + 'px';
-                    currentX = posX + 240; return posX;
+                    currentX = posX + PX; return posX;
                 } else {
                     let minX = Infinity, maxX = -Infinity;
                     hijos.forEach(hijo => {
@@ -1845,9 +2018,9 @@
                         if (posHijoX < minX) minX = posHijoX; if (posHijoX > maxX) maxX = posHijoX;
                     });
                     
-                    let posX = (minX + maxX) / 2; if (modoIman) posX = Math.round(posX / TAMANO_GRILLA) * TAMANO_GRILLA;
+                    let posX = Math.round(((minX + maxX) / 2) / PX) * PX;
                     nodo.style.left = posX + 'px'; nodo.style.top = posY + 'px';
-                    if (posX + 240 > currentX) currentX = posX + 240;
+                    if (posX + PX > currentX) currentX = posX + PX;
                     return posX;
                 }
             }
@@ -1855,7 +2028,7 @@
             arboles.forEach(raiz => acomodarNodos(raiz, 0));
 
             if (sueltos.length > 0) {
-                let sueltosX = currentX + 40; if (modoIman) sueltosX = Math.round(sueltosX / TAMANO_GRILLA) * TAMANO_GRILLA;
+                let sueltosX = Math.ceil((currentX + 40) / PX) * PX;
                 let maxXporNivel = {}; 
                 sueltos.forEach(nodo => {
                     let n = parseInt(nodo.dataset.nivel) || 0;
@@ -1864,19 +2037,19 @@
                     
                     nodo.dataset.nivel = n; nodo.style.borderColor = coloresNivel[n % coloresNivel.length]; 
                     nodo.style.left = posX + 'px'; nodo.style.top = posY + 'px';
-                    maxXporNivel[n] = posX + 240; 
+                    maxXporNivel[n] = posX + PX; 
                 });
             }
 
-            { // Filas compactas: la altura real de cada fila + 20px, lo activo (nivel más profundo) arriba
+            { // Filas sobre la misma cuadrícula: lo activo (nivel más profundo) arriba; cada fila ocupa las casillas que necesite su cuadro más alto
                 const filas = {};
                 todosLosNodos.forEach(n => { const lv = parseInt(n.dataset.nivel) || 0; (filas[lv] = filas[lv] || []).push(n); });
                 const niveles = Object.keys(filas).map(Number).sort((a, b) => b - a);
-                let yFila = 100;
+                let yFila = Math.ceil(100 / PY) * PY;
                 niveles.forEach(lv => {
                     const alto = Math.max(...filas[lv].map(n => n.offsetHeight));
                     filas[lv].forEach(n => { n.style.top = yFila + 'px'; });
-                    yFila = Math.ceil((yFila + alto + 20) / TAMANO_GRILLA) * TAMANO_GRILLA;
+                    yFila += Math.ceil((alto + 20) / PY) * PY;
                 });
             }
 
@@ -1910,6 +2083,235 @@
             }, 500); 
         });
 
+        // --- POSICIONES FIJAS: la misma cuadrícula que usa "Organizar" ---
+        // Casillas de tamaño fijo: no dependen del contenido de los cuadros. Un cuadro más alto que la casilla simplemente ocupa dos filas.
+        function pasosSlots() {
+            // alto de un cuadro "grande" típico (con barra de progreso); en pantallas táctiles es mayor por la franja para arrastrar
+            const alto = window.matchMedia('(pointer: coarse)').matches ? 198 : 160;
+            return { px: 260, py: Math.ceil((alto + 20) / TAMANO_GRILLA) * TAMANO_GRILLA };
+        }
+
+        // Índice por celdas: permite saber rápido qué cuadros hay cerca de una posición, sin revisar todos los cuadros
+        const claveCelda = (i, j) => (i + 100000) * 200003 + (j + 100000);
+        function agregarAlIndice(indice, r, px, py) {
+            const i1 = Math.floor((r.r - 1) / px), j1 = Math.floor((r.b - 1) / py);
+            for (let i = Math.floor(r.l / px); i <= i1; i++) for (let j = Math.floor(r.t / py); j <= j1; j++) {
+                const k = claveCelda(i, j); const lista = indice.get(k);
+                if (lista) lista.push(r); else indice.set(k, [r]);
+            }
+        }
+        function indiceRects(rects, px, py) { const indice = new Map(); rects.forEach(r => agregarAlIndice(indice, r, px, py)); return indice; }
+        function hayChoque(indice, px, py, x, y, w, h) {
+            const i1 = Math.floor((x + w - 1) / px), j1 = Math.floor((y + h - 1) / py);
+            for (let i = Math.floor(x / px); i <= i1; i++) for (let j = Math.floor(y / py); j <= j1; j++) {
+                const lista = indice.get(claveCelda(i, j));
+                if (lista) for (let k = 0; k < lista.length; k++) { const r = lista[k]; if (x < r.r && x + w > r.l && y < r.b && y + h > r.t) return true; }
+            }
+            return false;
+        }
+        function rectsOtros(c) {
+            return Array.from(document.querySelectorAll('.cuadro')).filter(b => b !== c && !b.classList.contains('oculto'))
+                .map(b => ({ l: b.offsetLeft, t: b.offsetTop, r: b.offsetLeft + b.offsetWidth, b: b.offsetTop + b.offsetHeight }));
+        }
+
+        // Mientras se arrastra un cuadro, los demás no se mueven: su índice se calcula una sola vez por arrastre
+        let cacheIndice = null;
+        function indiceOtros(c, px, py) {
+            const arrastrando = (c === elementoArrastrado);
+            if (arrastrando && cacheIndice && cacheIndice.c === c && cacheIndice.px === px && cacheIndice.py === py) return cacheIndice.indice;
+            const indice = indiceRects(rectsOtros(c), px, py);
+            if (arrastrando) cacheIndice = { c, px, py, indice };
+            return indice;
+        }
+
+        // Las casillas libres más cercanas a (x, y) para el cuadro 'c'
+        function slotsCercanos(c, x, y, cuantos, extras = []) {
+            const { px, py } = pasosSlots();
+            const w = c.offsetWidth, h = c.offsetHeight;
+            const indice = extras.length ? indiceRects(rectsOtros(c).concat(extras.map(e => ({ l: e.l, t: e.t, r: e.l + e.w, b: e.t + e.h }))), px, py) : indiceOtros(c, px, py);
+            const i0 = Math.round(x / px), j0 = Math.round(y / py);
+            let lista = [];
+            for (let radio = 3; radio <= 19 && lista.length < cuantos; radio += 4) {
+                lista = [];
+                for (let i = i0 - radio; i <= i0 + radio; i++) for (let j = j0 - radio; j <= j0 + radio; j++) {
+                    const sx = i * px, sy = j * py;
+                    if (!hayChoque(indice, px, py, sx, sy, w, h)) lista.push({ x: sx, y: sy, d: Math.hypot(sx - x, sy - y) });
+                }
+            }
+            lista.sort((a, b) => a.d - b.d);
+            return lista.slice(0, cuantos);
+        }
+
+        // Mueve el cuadro 'c' a la casilla libre más cercana a (x, y)
+        function colocarEnSlot(c, x, y) {
+            const s = slotsCercanos(c, x, y, 1)[0];
+            if (s) { c.style.left = s.x + 'px'; c.style.top = s.y + 'px'; }
+            return c;
+        }
+
+        // Dónde queda un cuadro al conectarlo como paso previo de 'padre': la casilla de arriba; si está ocupada, la más cercana de esa fila (derecha, izquierda, derecha...)
+        function posicionSobrePadre(padre, c) {
+            const { px, py } = pasosSlots();
+            const w = c.offsetWidth, h = c.offsetHeight;
+            const y = Math.floor((padre.offsetTop - h - 20 + 0.5) / py) * py;
+            const col0 = Math.round(padre.offsetLeft / px);
+            const indice = indiceOtros(c, px, py);
+            for (let i = 0; i < 40; i++) {
+                const k = i === 0 ? 0 : (i % 2 === 1 ? (i + 1) / 2 : -(i / 2));
+                if (!hayChoque(indice, px, py, (col0 + k) * px, y, w, h)) return { x: (col0 + k) * px, y };
+            }
+            return { x: col0 * px, y };
+        }
+
+        // Acomoda todos los cuadros en la casilla libre más cercana a donde están, sin reordenar el mapa. Devuelve cuántos se movieron.
+        function alinearACasillas() {
+            const { px, py } = pasosSlots();
+            const cajas = Array.from(document.querySelectorAll('.cuadro')).sort((a, b) => a.offsetTop - b.offsetTop || a.offsetLeft - b.offsetLeft);
+            const indice = new Map(); let movidos = 0;
+            cajas.forEach(c => {
+                const w = c.offsetWidth, h = c.offsetHeight, x = c.offsetLeft, y = c.offsetTop;
+                const i0 = Math.round(x / px), j0 = Math.round(y / py);
+                let mejor = null;
+                for (let radio = 0; radio <= 60; radio++) {
+                    for (let i = i0 - radio; i <= i0 + radio; i++) for (let j = j0 - radio; j <= j0 + radio; j++) {
+                        if (Math.max(Math.abs(i - i0), Math.abs(j - j0)) !== radio) continue;
+                        const sx = i * px, sy = j * py;
+                        if (hayChoque(indice, px, py, sx, sy, w, h)) continue;
+                        const d = Math.hypot(sx - x, sy - y);
+                        if (!mejor || d < mejor.d) mejor = { x: sx, y: sy, d };
+                    }
+                    if (mejor && (radio + 0.5) * Math.min(px, py) >= mejor.d) break;
+                }
+                const dest = mejor || { x, y };
+                if (dest.x !== x || dest.y !== y) { c.style.left = dest.x + 'px'; c.style.top = dest.y + 'px'; movidos++; }
+                agregarAlIndice(indice, { l: dest.x, t: dest.y, r: dest.x + w, b: dest.y + h }, px, py);
+            });
+            return movidos;
+        }
+        // Una sola vez por proyecto y dispositivo (y cada vez que cambia el tamaño de la casilla): alinea los cuadros que quedaron fuera de las casillas
+        function alinearCasillasUnaVez() {
+            if (!document.querySelector('.cuadro')) return;
+            const { px, py } = pasosSlots();
+            const clave = 'reticula_' + pestanaActiva, valor = px + 'x' + py;
+            if (localStorage.getItem(clave) === valor) return;
+            localStorage.setItem(clave, valor);
+            const yaGuardado = localStorage.getItem('mapaDatos_' + pestanaActiva) !== null;
+            const n = alinearACasillas();
+            if (n === 0) return;
+            dibujarLineas();
+            if (yaGuardado) guardarMapa();
+            if (n >= 2) mostrarMensajeEspecial('📐 ' + n + ' cuadros alineados a las casillas (Ctrl+Z deshace)');
+        }
+        function programarAlineado() { const tab = pestanaActiva; setTimeout(() => { if (tab === pestanaActiva) alinearCasillasUnaVez(); }, 80); }
+        // --- SILUETAS: muestran las casillas más cercanas donde puedes soltar el cuadro (la 1ª, más marcada, es la que se usará) ---
+        let slotsActuales = []; let elsSiluetas = []; let huboMovimiento = false;
+        function quitarSilueta() { elsSiluetas.forEach(e => e.remove()); elsSiluetas = []; }
+        function pintarSiluetas(lista, c, conecta, todas = false) {
+            while (elsSiluetas.length > lista.length) elsSiluetas.pop().remove();
+            lista.forEach((s, i) => {
+                let el = elsSiluetas[i];
+                if (!el) { el = document.createElement('div'); contenedorMapa.insertBefore(el, contenedorMapa.firstChild); elsSiluetas[i] = el; }
+                el.className = 'silueta-cuadro' + ((i === 0 || todas) ? '' : ' candidata') + (conecta && i === 0 ? ' conecta' : '');
+                el.style.width = (s.w || c.offsetWidth) + 'px'; el.style.height = (s.h || c.offsetHeight) + 'px';
+                el.style.left = s.x + 'px'; el.style.top = s.y + 'px';
+            });
+        }
+        function actualizarSilueta() {
+            const c = elementoArrastrado;
+            if (!c || c === 'fondo' || c === 'lazo' || papelera.classList.contains('activa') || panelLateral.classList.contains('panel-drop-active')) { quitarSilueta(); return; }
+            if (grupoArrastre) {   // grupo: una silueta por cada cuadro, donde caería todo el grupo
+                const g = grupoArrastre;
+                if (!g.destino || !huboMovimiento) { quitarSilueta(); return; }
+                pintarSiluetas(g.miembros.filter(m => !m.oculto).map(m => ({ x: m.l + g.destino.di * g.px, y: m.t + g.destino.dj * g.py, w: m.w, h: m.h })), null, false, true);
+                return;
+            }
+            const padre = document.querySelector('.cuadro.padre-potencial');
+            if (padre && !conexiones.some(k => k.padre === padre && k.hijo === c)) pintarSiluetas([posicionSobrePadre(padre, c)], c, true);
+            else pintarSiluetas(slotsActuales, c, false);
+        }
+
+        // --- SELECCIÓN MÚLTIPLE ---
+        // Shift+clic: suma o quita un cuadro · Shift+arrastrar en el fondo: recuadro de selección · Ctrl+clic: el cuadro y toda su rama
+        // Al arrastrar un cuadro seleccionado se mueve todo el grupo, sin cambiar su forma, a las casillas libres más cercanas.
+        let grupoArrastre = null;
+        const lazoEl = document.createElement('div'); lazoEl.id = 'lazo-seleccion'; document.body.appendChild(lazoEl);
+        const indicadorSeleccion = document.createElement('div'); indicadorSeleccion.id = 'indicador-seleccion'; document.body.appendChild(indicadorSeleccion);
+        function refrescarSeleccionUI() {
+            const n = seleccion.size;
+            indicadorSeleccion.style.display = n ? 'block' : 'none';
+            indicadorSeleccion.innerText = n + (n === 1 ? ' seleccionado' : ' seleccionados') + ' · arrastra uno para mover el grupo · Esc para soltar';
+        }
+        function marcarSeleccion(b, si) { if (si) { seleccion.add(b); b.classList.add('seleccionado'); } else { seleccion.delete(b); b.classList.remove('seleccionado'); } }
+        function limpiarSeleccion() { seleccion.forEach(b => b.classList.remove('seleccionado')); seleccion.clear(); refrescarSeleccionUI(); }
+        function purgarSeleccion() { let cambio = false; seleccion.forEach(b => { if (!b.isConnected) { seleccion.delete(b); cambio = true; } }); if (cambio) refrescarSeleccionUI(); }
+        function alternarSeleccion(b) { marcarSeleccion(b, !seleccion.has(b)); refrescarSeleccionUI(); }
+        function ramaDe(b) {
+            const visto = new Set([b]); const pila = [b];
+            while (pila.length) { const x = pila.pop(); conexiones.forEach(k => { if (k.padre === x && !visto.has(k.hijo)) { visto.add(k.hijo); pila.push(k.hijo); } }); }
+            return Array.from(visto);
+        }
+        function alternarRama(b) { const quitar = seleccion.has(b); ramaDe(b).forEach(x => marcarSeleccion(x, !quitar)); refrescarSeleccionUI(); }
+
+        function iniciarGrupo(ancla) {
+            const { px, py } = pasosSlots();
+            const rects = Array.from(document.querySelectorAll('.cuadro')).filter(b => !seleccion.has(b) && !b.classList.contains('oculto'))
+                .map(b => ({ l: b.offsetLeft, t: b.offsetTop, r: b.offsetLeft + b.offsetWidth, b: b.offsetTop + b.offsetHeight }));
+            grupoArrastre = { ancla, px, py, indice: indiceRects(rects, px, py), destino: null,
+                miembros: Array.from(seleccion).filter(b => b.isConnected).map(b => ({ el: b, l: b.offsetLeft, t: b.offsetTop, w: b.offsetWidth, h: b.offsetHeight, oculto: b.classList.contains('oculto') })) };
+        }
+        // Desplazamiento en casillas (di, dj) más cercano a (dx, dy) con el que ningún cuadro del grupo choca con los que no están seleccionados
+        function destinoGrupo(g, dx, dy) {
+            const vis = g.miembros.filter(m => !m.oculto);
+            const di0 = Math.round(dx / g.px), dj0 = Math.round(dy / g.py);
+            for (let radio = 3; radio <= 23; radio += 4) {
+                const cand = [];
+                for (let i = di0 - radio; i <= di0 + radio; i++) for (let j = dj0 - radio; j <= dj0 + radio; j++) cand.push({ di: i, dj: j, d: Math.hypot(i * g.px - dx, j * g.py - dy) });
+                cand.sort((a, b) => a.d - b.d);
+                for (const c of cand) if (!vis.some(m => hayChoque(g.indice, g.px, g.py, m.l + c.di * g.px, m.t + c.dj * g.py, m.w, m.h))) return c;
+            }
+            return null;
+        }
+        function moverGrupo(dx, dy) {
+            const g = grupoArrastre; if (!g) return;
+            g.miembros.forEach(m => { m.el.style.left = (m.l + dx) + 'px'; m.el.style.top = (m.t + dy) + 'px'; });
+            g.destino = destinoGrupo(g, dx, dy);
+            dibujarLineas(true);
+        }
+        function finalizarGrupo(evento) {
+            const g = grupoArrastre; if (!g) return;
+            const rp = papelera.getBoundingClientRect();
+            const sobrePapelera = evento.clientX > rp.left && evento.clientX < rp.right && evento.clientY > rp.top && evento.clientY < rp.bottom;
+            // Soltar el grupo sobre la papelera o el panel lateral cancela el movimiento (no se elimina nada)
+            const cancelar = !huboMovimiento || sobrePapelera || sobrePanelLateral(evento.clientX) || !g.destino;
+            g.miembros.forEach(m => {
+                m.el.style.left = (cancelar ? m.l : m.l + g.destino.di * g.px) + 'px';
+                m.el.style.top = (cancelar ? m.t : m.t + g.destino.dj * g.py) + 'px';
+            });
+            papelera.classList.remove('activa'); panelLateral.classList.remove('panel-drop-active');
+            dibujarLineas(); guardarMapa();
+        }
+
+        function actualizarLazo() {
+            const e = ultimoEventoRaton; if (!e) return;
+            Object.assign(lazoEl.style, { display: 'block', left: Math.min(inicioRatonX, e.clientX) + 'px', top: Math.min(inicioRatonY, e.clientY) + 'px',
+                width: Math.abs(e.clientX - inicioRatonX) + 'px', height: Math.abs(e.clientY - inicioRatonY) + 'px' });
+        }
+        function finalizarLazo(evento) {
+            lazoEl.style.display = 'none';
+            const x1 = Math.min(inicioRatonX, evento.clientX), x2 = Math.max(inicioRatonX, evento.clientX);
+            const y1 = Math.min(inicioRatonY, evento.clientY), y2 = Math.max(inicioRatonY, evento.clientY);
+            if (x2 - x1 < 4 && y2 - y1 < 4) return;
+            document.querySelectorAll('.cuadro').forEach(b => {
+                if (b.classList.contains('oculto')) return;
+                const r = b.getBoundingClientRect();
+                if (r.left < x2 && r.right > x1 && r.top < y2 && r.bottom > y1) marcarSeleccion(b, true);
+            });
+            refrescarSeleccionUI();
+        }
+        // Con Shift o Ctrl pulsados, el clic sobre un cuadro solo selecciona: no activa botones, casillas ni campos
+        document.addEventListener('click', (e) => { if ((e.shiftKey || e.ctrlKey || e.metaKey) && e.target.closest && e.target.closest('.cuadro')) { e.stopPropagation(); e.preventDefault(); } }, true);
+        document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && seleccion.size) limpiarSeleccion(); });
+
         // --- MOVIMIENTO ---
         let elementoArrastrado = null; let inicioRatonX, inicioRatonY; let posInicialElementoX, posInicialElementoY;
         let rafPendiente = false; let ultimoEventoRaton = null; 
@@ -1923,6 +2325,7 @@
             const xEliminado = cuadroAEliminar.offsetLeft;
             const yEliminado = cuadroAEliminar.offsetTop;
             const nivelEliminado = parseInt(cuadroAEliminar.dataset.nivel) || 0;
+            if (seleccion.delete(cuadroAEliminar)) { cuadroAEliminar.classList.remove('seleccionado'); refrescarSeleccionUI(); }
 
             padresDelEliminado.forEach(padre => {
                 hijosDelEliminado.forEach(hijo => {
@@ -1931,17 +2334,15 @@
                 });
             });
 
-            hijosDelEliminado.forEach((hijo, idx) => {
-                let nuevoX = xEliminado + (idx * 240); 
-                let nuevoY = yEliminado;
-                if (modoIman) {
-                    nuevoX = Math.round(nuevoX / TAMANO_GRILLA) * TAMANO_GRILLA;
-                    nuevoY = Math.round(nuevoY / TAMANO_GRILLA) * TAMANO_GRILLA;
-                }
+            cuadroAEliminar.remove();   // se quita antes de buscar casillas, para que su lugar quede libre
+            const casillasNuevas = [];
+            hijosDelEliminado.forEach((hijo) => {
+                const destino = slotsCercanos(hijo, xEliminado, yEliminado, 1, casillasNuevas)[0] || { x: xEliminado, y: yEliminado };
+                casillasNuevas.push({ l: destino.x, t: destino.y, w: hijo.offsetWidth, h: hijo.offsetHeight });
                 
                 hijo.classList.add('animar-movimiento');
-                hijo.style.left = nuevoX + 'px';
-                hijo.style.top = nuevoY + 'px';
+                hijo.style.left = destino.x + 'px';
+                hijo.style.top = destino.y + 'px';
                 
                 hijo.dataset.nivel = nivelEliminado;
                 hijo.style.borderColor = coloresNivel[nivelEliminado % coloresNivel.length];
@@ -1959,6 +2360,18 @@
         }
 
         document.addEventListener('mousedown', (evento) => {
+            if (evento.button === 0 && (evento.shiftKey || evento.ctrlKey || evento.metaKey)) {
+                const cuadroSel = evento.target.closest('.cuadro');
+                if (cuadroSel) {
+                    if (!cuadroSel.classList.contains('oculto')) { evento.preventDefault(); if (evento.shiftKey) alternarSeleccion(cuadroSel); else alternarRama(cuadroSel); }
+                    return;
+                }
+                if (evento.shiftKey && evento.target.closest('#lienzo') && !evento.target.closest('.grupo-conexion')) {
+                    evento.preventDefault();
+                    elementoArrastrado = 'lazo'; grupoArrastre = null; inicioRatonX = evento.clientX; inicioRatonY = evento.clientY;
+                    return;
+                }
+            }
             if (evento.target.tagName === 'INPUT' || evento.target.tagName === 'TEXTAREA' || 
                 evento.target.tagName === 'BUTTON' && !evento.target.classList.contains('item-tarea') || 
                 evento.target.closest('.pestana') || evento.target.closest('.btn-respaldo') ||
@@ -1991,9 +2404,10 @@
 
             const cuadro = evento.target.closest('.cuadro');
             if (cuadro) {
-                elementoArrastrado = cuadro;
+                elementoArrastrado = cuadro; huboMovimiento = false; cacheIndice = null; grupoArrastre = null;
                 inicioRatonX = evento.clientX; inicioRatonY = evento.clientY;
                 posInicialElementoX = cuadro.offsetLeft; posInicialElementoY = cuadro.offsetTop;
+                if (seleccion.size > 1 && seleccion.has(cuadro)) iniciarGrupo(cuadro); else if (!seleccion.has(cuadro)) limpiarSeleccion();
             } else {
                 elementoArrastrado = 'fondo';
                 inicioRatonX = evento.clientX; inicioRatonY = evento.clientY;
@@ -2025,7 +2439,7 @@
                     const mundoY = (ultimoEventoRaton.clientY - panY) / escala;
                     const nuevoCuadro = crearCuadro(mundoX - 110, mundoY - 20, 0, { texto: texto, completado: false });
                     
-                    elementoArrastrado = nuevoCuadro;
+                    elementoArrastrado = nuevoCuadro; huboMovimiento = true; cacheIndice = null; grupoArrastre = null;
                     inicioRatonX = ultimoEventoRaton.clientX; 
                     inicioRatonY = ultimoEventoRaton.clientY;
                     posInicialElementoX = nuevoCuadro.offsetLeft; 
@@ -2057,13 +2471,16 @@
             if (elementoArrastrado === 'fondo') {
                 panX = posInicialElementoX + movX; panY = posInicialElementoY + movY;
                 actualizarCamara();
+            } else if (elementoArrastrado === 'lazo') {
+                actualizarLazo();
+            } else if (grupoArrastre) {
+                if (Math.hypot(movX, movY) > 4) huboMovimiento = true;
+                moverGrupo(movX / escala, movY / escala);
             } else if (elementoArrastrado) {
                 let nuevoX = posInicialElementoX + (movX / escala); let nuevoY = posInicialElementoY + (movY / escala);
                 
-                if (modoIman) {
-                    nuevoX = Math.round(nuevoX / TAMANO_GRILLA) * TAMANO_GRILLA;
-                    nuevoY = Math.round(nuevoY / TAMANO_GRILLA) * TAMANO_GRILLA;
-                }
+                if (Math.hypot(movX, movY) > 4) huboMovimiento = true;
+                slotsActuales = slotsCercanos(elementoArrastrado, nuevoX, nuevoY, 5);
 
                 elementoArrastrado.style.left = nuevoX + 'px'; elementoArrastrado.style.top = nuevoY + 'px';
                 dibujarLineas(true); 
@@ -2089,7 +2506,8 @@
                     }
                 }
             }
-            rafPendiente = false; 
+            actualizarSilueta();
+            rafPendiente = false;
         }
 
         document.addEventListener('mouseup', (evento) => {
@@ -2106,8 +2524,21 @@
                 return;
             }
 
+            if (elementoArrastrado === 'lazo' || grupoArrastre) {
+                quitarSilueta();
+                if (elementoArrastrado === 'lazo') finalizarLazo(evento); else finalizarGrupo(evento);
+                elementoArrastrado = null; ultimoEventoRaton = null; huboMovimiento = false; slotsActuales = []; cacheIndice = null; grupoArrastre = null;
+                return;
+            }
+
             if (elementoArrastrado) {
+                quitarSilueta();
+                if (elementoArrastrado === 'fondo' && Math.hypot(evento.clientX - inicioRatonX, evento.clientY - inicioRatonY) < 4) limpiarSeleccion();
                 if (elementoArrastrado !== 'fondo') {
+                    if (huboMovimiento) {
+                        const destino = slotsCercanos(elementoArrastrado, elementoArrastrado.offsetLeft, elementoArrastrado.offsetTop, 1)[0];
+                        if (destino) { elementoArrastrado.style.left = destino.x + 'px'; elementoArrastrado.style.top = destino.y + 'px'; }
+                    }
                     const rectPapelera = papelera.getBoundingClientRect();
                     
                     if (evento.clientX > rectPapelera.left && evento.clientX < rectPapelera.right && evento.clientY > rectPapelera.top && evento.clientY < rectPapelera.bottom) {
@@ -2126,11 +2557,9 @@
                                 if (!yaConectado) {
                                     conexiones.push({ padre: box, hijo: elementoArrastrado });
                                     
-                                    let snapY = box.offsetTop - elementoArrastrado.offsetHeight - 40;
-                                    if (modoIman) snapY = Math.floor(snapY / TAMANO_GRILLA) * TAMANO_GRILLA;
-                                    
-                                    elementoArrastrado.style.left = box.offsetLeft + 'px';
-                                    elementoArrastrado.style.top = snapY + 'px';
+                                    const pos = posicionSobrePadre(box, elementoArrastrado);
+                                    elementoArrastrado.style.left = pos.x + 'px';
+                                    elementoArrastrado.style.top = pos.y + 'px';
                                     
                                     const nPadre = parseInt(box.dataset.nivel) || 0;
                                     elementoArrastrado.dataset.nivel = nPadre + 1;
@@ -2146,7 +2575,7 @@
                 panelLateral.classList.remove('panel-drop-active');
                 papelera.classList.remove('activa'); guardarMapa();
             }
-            elementoArrastrado = null; ultimoEventoRaton = null;
+            elementoArrastrado = null; ultimoEventoRaton = null; huboMovimiento = false; slotsActuales = []; cacheIndice = null; grupoArrastre = null;
         });
 
         lienzo.addEventListener('wheel', (evento) => {
@@ -2253,6 +2682,152 @@
             else if (ctrl && (k === 'y' || (e.shiftKey && k === 'z'))) { e.preventDefault(); rehacer(); }
             else if (!ctrl && e.key === '/') { e.preventDefault(); buscador.focus(); }
         });
+
+        // --- LÓGICA MODO BOLSILLO (CELULAR) ---
+        let mvSeccion = 'ahora';
+        const mvContenido = document.getElementById('mv-contenido');
+        const mvBarraOrden = document.getElementById('mv-barra-orden');
+        const mvInput = document.getElementById('mv-input-tarea');
+        const mvBtnSync = document.getElementById('mv-btn-sync');
+
+        if (window.matchMedia('(max-width: 760px)').matches) {
+            document.body.classList.add('movil-simple');
+        }
+
+        function renderizarAppMovil() {
+            if (!document.body.classList.contains('movil-simple')) return;
+
+            // Sincronizar estado del botón nube
+            const btnSyncOrig = document.getElementById('btn-sync');
+            if (btnSyncOrig && mvBtnSync) mvBtnSync.innerText = btnSyncOrig.innerText.replace('Sincronizar', '').trim() || '☁';
+
+            // Contadores en las pestañas
+            const hijosDe = mapaHijos();
+            const padresDe = new Map();
+            hijosDe.forEach((hijos, padre) => hijos.forEach(h => { if (!padresDe.has(h)) padresDe.set(h, []); padresDe.get(h).push(padre); }));
+            const contarDep = (c) => {
+                const visto = new Set(), pila = [c];
+                while (pila.length) (padresDe.get(pila.pop()) || []).forEach(p => { if (!visto.has(p)) { visto.add(p); pila.push(p); } });
+                return visto.size;
+            };
+
+            const disponibles = Array.from(document.querySelectorAll('.cuadro.estado-disponible')).filter(tieneTitulo);
+            const itemsBandeja = Array.from(document.querySelectorAll('#lista-tareas .item-tarea'));
+
+            document.getElementById('mv-tab-ahora').innerText = `🎯 Ahora (${disponibles.length})`;
+            document.getElementById('mv-tab-bandeja').innerText = `📥 Bandeja (${itemsBandeja.length})`;
+            document.getElementById('mv-tab-ahora').classList.toggle('activo', mvSeccion === 'ahora');
+            document.getElementById('mv-tab-bandeja').classList.toggle('activo', mvSeccion === 'bandeja');
+            mvBarraOrden.style.display = mvSeccion === 'ahora' ? 'flex' : 'none';
+
+            document.querySelectorAll('#mv-barra-orden button').forEach(b => b.classList.toggle('activo', b.dataset.orden === ordenAhora));
+            mvContenido.innerHTML = '';
+
+            if (mvSeccion === 'ahora') {
+                const items = disponibles.map(c => ({
+                    c, n: contarDep(c), d: diasHasta(c.dataset.fecha),
+                    pr: limitar03(c.dataset.prioridad), es: limitar03(c.dataset.esfuerzo)
+                }));
+                const cmpFecha = (a, b) => ((a.d === null) - (b.d === null)) || ((a.d || 0) - (b.d || 0));
+                const cmpPrio = (a, b) => b.pr - a.pr;
+                const cmpEsf = (a, b) => ((a.es === 0) - (b.es === 0)) || (a.es - b.es);
+                const cmpAyu = (a, b) => b.n - a.n;
+                const ordenes = {
+                    fecha: [cmpFecha, cmpPrio, cmpAyu, cmpEsf],
+                    prioridad: [cmpPrio, cmpFecha, cmpAyu, cmpEsf],
+                    esfuerzo: [cmpEsf, cmpPrio, cmpFecha, cmpAyu],
+                    ayuda: [cmpAyu, cmpPrio, cmpFecha, cmpEsf]
+                };
+                const crit = ordenes[ordenAhora] || ordenes.fecha;
+                items.sort((a, b) => { for (const f of crit) { const r = f(a, b); if (r) return r; } return a.c.offsetTop - b.c.offsetTop; });
+
+                if (items.length === 0) {
+                    mvContenido.innerHTML = '<div class="ahora-vacio" style="text-align:center;padding:30px;">🎉 No tienes tareas pendientes por ahora.</div>';
+                    return;
+                }
+
+                items.forEach(({ c, n, d, pr, es }) => {
+                    const card = document.createElement('div'); card.className = 'mv-tarjeta';
+                    const chk = document.createElement('input'); chk.type = 'checkbox';
+                    chk.addEventListener('change', () => { c.querySelector('.casilla').click(); });
+
+                    const cuerpo = document.createElement('div'); cuerpo.className = 'mv-cuerpo';
+                    const tit = document.createElement('div'); tit.className = 'mv-titulo'; tit.innerText = tituloDe(c);
+                    cuerpo.appendChild(tit);
+
+                    const detalles = [];
+                    const tf = textoFecha(c.dataset.fecha); if (tf) detalles.push('📅 ' + tf);
+                    if (pr) detalles.push(ETIQ_PRIORIDAD[pr]);
+                    if (es) detalles.push(ETIQ_ESFUERZO[es]);
+                    if (c.dataset.repetir) detalles.push(ETIQ_REP[REPS.indexOf(c.dataset.repetir)]);
+                    if (c.etiquetas && c.etiquetas.length) detalles.push('🏷 ' + c.etiquetas.join(', '));
+                    if (n > 0) detalles.push('🔗 Destraba ' + n);
+
+                    if (detalles.length) {
+                        const meta = document.createElement('div'); meta.className = 'mv-meta';
+                        meta.innerText = detalles.join(' · ');
+                        if (d !== null && d < 0) meta.style.color = '#f87171';
+                        else if (d !== null && d <= 2) meta.style.color = '#fbbf24';
+                        cuerpo.appendChild(meta);
+                    }
+
+                    const tieneNota = (c.nota || '').trim().length > 0;
+                    const btnN = document.createElement('button');
+                    btnN.className = 'mv-btn-nota' + (tieneNota ? ' con-nota' : '');
+                    btnN.innerText = '📝';
+                    btnN.addEventListener('click', (e) => { e.stopPropagation(); abrirNota(c, btnN); });
+
+                    card.appendChild(chk); card.appendChild(cuerpo); card.appendChild(btnN);
+                    mvContenido.appendChild(card);
+                });
+            } else {
+                if (itemsBandeja.length === 0) {
+                    mvContenido.innerHTML = '<div class="ahora-vacio" style="text-align:center;padding:30px;">📥 La bandeja está vacía.<br><small>Lo que anotes abajo aparecerá en la columna lateral de tu PC.</small></div>';
+                    return;
+                }
+                itemsBandeja.forEach(itemDOM => {
+                    const fila = document.createElement('div'); fila.className = 'mv-bandeja-item';
+                    const sp = document.createElement('span'); sp.innerText = itemDOM.querySelector('span').innerText;
+                    const btnDel = document.createElement('button'); btnDel.className = 'btn-eliminar-tarea'; btnDel.innerText = '✖';
+                    btnDel.addEventListener('click', () => { itemDOM.querySelector('.btn-eliminar-tarea').click(); renderizarAppMovil(); });
+                    fila.appendChild(sp); fila.appendChild(btnDel);
+                    mvContenido.appendChild(fila);
+                });
+            }
+        }
+
+        document.getElementById('mv-tab-ahora').addEventListener('click', () => { mvSeccion = 'ahora'; renderizarAppMovil(); });
+        document.getElementById('mv-tab-bandeja').addEventListener('click', () => { mvSeccion = 'bandeja'; renderizarAppMovil(); });
+        document.querySelectorAll('#mv-barra-orden button').forEach(b => b.addEventListener('click', () => {
+            ordenAhora = b.dataset.orden; localStorage.setItem('ordenAhora', ordenAhora); renderizarAppMovil();
+        }));
+
+        function enviarDesdeMovil() {
+            const txt = mvInput.value.trim();
+            if (!txt) return;
+            agregarTareaBandejaDOM(txt);
+            mvInput.value = '';
+            guardarMapa();
+            renderizarAppMovil();
+            mostrarMensajeEspecial('📥 Guardado en la bandeja');
+        }
+        document.getElementById('mv-btn-enviar').addEventListener('click', enviarDesdeMovil);
+        mvInput.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.isComposing) enviarDesdeMovil(); });
+
+        mvBtnSync.addEventListener('click', () => document.getElementById('btn-sync').click());
+        document.getElementById('mv-btn-mapa').addEventListener('click', () => {
+            document.body.classList.remove('movil-simple');
+        });
+        document.getElementById('btn-volver-movil').addEventListener('click', () => {
+            document.body.classList.add('movil-simple');
+            renderizarAppMovil();
+        });
+
+        // Enganchar la actualización móvil a los cambios de estado y sincronización
+        const _actualizarEstadosOrig = actualizarEstados;
+        actualizarEstados = function() { _actualizarEstadosOrig(); renderizarAppMovil(); };
+        const _actualizarBotonSyncOrig = actualizarBotonSync;
+        actualizarBotonSync = function() { _actualizarBotonSyncOrig(); if (mvBtnSync) mvBtnSync.innerText = document.getElementById('btn-sync').innerText.replace('Sincronizar', '').trim(); };
 
         // INICIO
         renderizarPestanas();
