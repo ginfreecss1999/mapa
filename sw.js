@@ -1,6 +1,6 @@
 // Service worker: guarda la app para que abra sin internet. Primero intenta la red (así recibes las actualizaciones)
 // y si no hay conexión usa la copia guardada. Solo toca archivos de este mismo sitio: nunca las respuestas de GitHub.
-const CACHE = 'mapa-v1-35';
+const CACHE = 'mapa-v1-36';
 const ARCHIVOS = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png'];
 self.addEventListener('install', (e) => {
     e.waitUntil(caches.open(CACHE).then((c) => c.addAll(ARCHIVOS)));

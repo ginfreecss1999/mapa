@@ -345,6 +345,8 @@
         #indicador-seleccion { display: none; position: fixed; top: 72px; left: 280px; z-index: 1000; background: #0c4a6e; color: #e0f2fe; border: 1px solid #38bdf8; border-radius: 16px; padding: 4px 12px; font-size: 12px; font-weight: bold; pointer-events: none; }
         @media (max-width: 760px) { #indicador-seleccion { top: 108px; left: 10px; } }
         /* --- MODO BOLSILLO (CELULAR) --- */
+        /* Zona de pantalla dañada (parte superior): se deja vacía. Para ajustarla, cambia solo este valor. */
+        :root { --zona-rota: 15vh; }
         #app-movil, #btn-volver-movil { display: none; }
         @media (max-width: 760px) {
             body.movil-simple #lienzo,
@@ -358,16 +360,16 @@
             body.movil-simple #menu-respaldo { display: none !important; }
 
             body.movil-simple #barra-pestanas {
-                top: 10px; left: 10px; right: 98px; max-width: none;
+                top: calc(var(--zona-rota) + 10px); left: 10px; right: 98px; max-width: none;
                 flex-wrap: nowrap; overflow-x: auto; z-index: 1005;
             }
             body.movil-simple #app-movil {
                 display: flex; flex-direction: column;
                 position: fixed; inset: 0; background: var(--fondo); z-index: 950;
-                padding: 58px 12px 70px; box-sizing: border-box;
+                padding: calc(var(--zona-rota) + 58px) 12px 70px; box-sizing: border-box;
             }
             .mv-top-acciones {
-                position: fixed; top: 10px; right: 10px; display: flex; gap: 6px; z-index: 1006;
+                position: fixed; top: calc(var(--zona-rota) + 10px); right: 10px; display: flex; gap: 6px; z-index: 1006;
             }
             .mv-btn-icono {
                 height: 36px; padding: 0 10px; border-radius: 8px;
@@ -528,7 +530,7 @@
     
     <div id="papelera">🗑️</div>
     <div id="indicador-guardado">Guardado ✓</div>
-    <div id="version-app">v1.35 (Modo celular)</div>
+    <div id="version-app">v1.36 (Modo celular)</div>
 
     <script>
         const lienzo = document.getElementById('lienzo');
